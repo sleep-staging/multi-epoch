@@ -1,7 +1,7 @@
 from augmentations import *
 from loss import loss_fn
 from model import sleep_model
-from train import *
+from train_asym import *
 from utils import *
 
 from braindecode.util import set_random_seeds
@@ -21,7 +21,7 @@ SAVE_PATH = "multi-epoch-avg.pth"
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 256
 lr = 5e-4
-n_epochs = 50
+n_epochs = 100
 NUM_WORKERS = 9
 N_DIM = 128
 EPOCH_LEN = 7
@@ -126,10 +126,10 @@ test_loader = DataLoader(train_data(TEST_FILE), batch_size=BATCH_SIZE, shuffle=F
 
 wb = wandb.init(
         project="WTM",
-        notes="triplet loss, symmetric loss, 7 epoch length, avg of features instead of weights, 2000 samples, same learning rate, using logistic regression with saga solver",
+        notes="triplet loss, asymmetric loss, 7 epoch length, avg of features instead of weights, 2000 samples, same learning rate, using logistic regression with saga solver",
         save_code=True,
         entity="sleep-staging",
-        name="multi-epoch-avg, epoch=7, samples=2000, symmetric loss, saga",
+        name="multi-epoch-avg, epoch=7, samples=2000, asymmetric loss, saga",
     )
 wb.save('/home2/vivek.talwar/multi-epoch/multi_epoch_avg/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
