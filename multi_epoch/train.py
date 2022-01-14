@@ -3,9 +3,11 @@ from sklearn.metrics import (
     accuracy_score,
     f1_score,
     confusion_matrix,
+    balanced_accuracy_score
 )
 import torch
 from sklearn.linear_model import LogisticRegression as LR
+from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 import numpy as np
 
@@ -41,15 +43,19 @@ def evaluate(q_encoder, train_loader, test_loader, device):
 
     emb_test, gt_test = np.array(emb_test), np.array(gt_test)
 
-    acc, cm, f1, kappa, gt, pd = task(emb_val, emb_test, gt_val, gt_test)
+    acc, cm, f1, kappa, bal_acc, gt, pd = task(emb_val, emb_test, gt_val, gt_test)
 
     q_encoder.train()
-    return acc, cm, f1, kappa, gt, pd
+    return acc, cm, f1, kappa, bal_acc, gt, pd
 
 
 def task(X_train, X_test, y_train, y_test):
+    
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
 
-    cls = LR(solver="lbfgs", multi_class="multinomial", max_iter=300, n_jobs=-1)
+    cls = LR(solver="saga", multi_class="multinomial", max_iter= 5000, n_jobs=-1, dual = False)
     cls.fit(X_train, y_train)
     pred = cls.predict(X_test)
 
@@ -57,8 +63,9 @@ def task(X_train, X_test, y_train, y_test):
     cm = confusion_matrix(y_test, pred)
     f1 = f1_score(y_test, pred, average="macro")
     kappa = cohen_kappa_score(y_test, pred)
+    bal_acc = balanced_accuracy_score(y_test, pred)
 
-    return acc, cm, f1, kappa, y_test, pred
+    return acc, cm, f1, kappa, bal_acc, y_test, pred
 
 
 # Pretrain
@@ -78,7 +85,7 @@ def Pretext(
     q_encoder.train()  # for dropout
 
     step = 0
-    best_acc = 0
+    best_f1 = 0
 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.2, patience=5
@@ -89,35 +96,41 @@ def Pretext(
 
     for epoch in range(Epoch):
         
-        print("Epoch: {}".format(epoch))
-
-        for index, (anc, pos, neg) in enumerate(
+        for index, (aug1, aug2, neg) in enumerate(
             tqdm(pretext_loader, desc="pretrain")
         ):
 
-            anc = anc[:,3].float()
-            pos = pos.float()
+            aug1 = aug1.float()
+            aug2 = aug2.float()
             neg = neg.float()
-            anc, pos, neg = (
-                anc.to(device),
-                pos.to(device),
+            aug1, aug2, neg = (
+                aug1.to(device),
+                aug2.to(device),
                 neg.to(device),
-            )  # (B, 2, 3000)  (B, 7, 2, 3000) (B, 7, 2, 3000)
+            )  # (B, 7, 2, 3000)  (B, 7, 2, 3000) (B, 7, 2, 3000)
+            
+            num_len = aug1.shape[1]
 
-            anc_features = q_encoder(anc, proj_first=True)  # (B, 128)
-
-            pos_features = []
+            pos1_features = []
+            pos2_features = []
             neg_features = []
-
-            for i in range(pos.shape[1]):
-                pos_features.append(q_encoder(pos[:, i], proj_first=False))  # (B, 128)
+        
+            anc1_features = q_encoder(aug1[:, num_len // 2], proj_first=True) #(B, 128)
+            anc2_features = q_encoder(aug2[:, num_len // 2], proj_first=True) #(B, 128)
+            
+            for i in range(num_len):
+                pos1_features.append(q_encoder(aug2[:, i], proj_first=False))  # (B, 128)
+                pos2_features.append(q_encoder(aug1[:, i], proj_first=False))  # (B, 128)
                 neg_features.append(q_encoder(neg[:, i], proj_first=False))  # (B, 128)
 
-            pos_features = torch.stack(pos_features, dim=1)  # (B, 7, 128)
+            pos1_features = torch.stack(pos1_features, dim=1)  # (B, 7, 128)
+            pos2_features = torch.stack(pos2_features, dim=1)  # (B, 7, 128)
             neg_features = torch.stack(neg_features, dim=1)  # (B, 7, 128)
-
+           
             # backprop
-            loss = criterion(anc_features, pos_features, neg_features)
+            loss1 = criterion(anc1_features, pos1_features, neg_features)
+            loss2 = criterion(anc2_features, pos2_features, neg_features)
+            loss = loss1 + loss2
 
             # loss back
             all_loss.append(loss.item())
@@ -131,27 +144,28 @@ def Pretext(
             if (step + 1) % N == 0:
                 scheduler.step(sum(all_loss[-50:]))
                 lr = optimizer.param_groups[0]["lr"]
-                wandb.log({"ssl_lr": lr, "epoch": epoch})
+                wandb.log({"ssl_lr": lr, "Epoch": epoch})
             step += 1
 
 
-        test_acc, _, test_f1, test_kappa, gt, pd = evaluate(
+        test_acc, _, test_f1, test_kappa, bal_acc, gt, pd = evaluate(
             q_encoder, train_loader, test_loader, device
         )
 
         acc_score.append(test_acc)
 
-        wandb.log({"ssl_loss": np.mean(pretext_loss), "epoch": epoch})
+        wandb.log({"ssl_loss": np.mean(pretext_loss), "Epoch": epoch})
 
-        wandb.log({"test_acc": test_acc, "epoch": epoch})
-        wandb.log({"test_f1": test_f1, "epoch": epoch})
-        wandb.log({"test_kappa": test_kappa, "epoch": epoch})
+        wandb.log({"Valid Acc": test_acc, "Epoch": epoch})
+        wandb.log({"Valid F1": test_f1, "Epoch": epoch})
+        wandb.log({"Valid Kappa": test_kappa, "Epoch": epoch})
+        wandb.log({"Valid Balanced Acc": bal_acc, "Epoch": epoch})
 
         if epoch >= 30 and (epoch + 1) % 10 == 0:
             print("Logging confusion matrix ...")
             wandb.log(
                 {
-                    f"conf_mat_{epoch+1}": wandb.plot.confusion_matrix(
+                    f"conf_mat_{epoch}": wandb.plot.confusion_matrix(
                         probs=None, 
                         y_true=gt,
                         preds=pd,
@@ -167,9 +181,9 @@ def Pretext(
                     np.mean(acc_score[-5:]), np.std(acc_score[-5:])
                 )
             )
-            wandb.log({"accuracy std": np.std(acc_score[-5:]), "epoch": epoch})
+            wandb.log({"accuracy std": np.std(acc_score[-5:]), "Epoch": epoch})
 
-            if test_acc > best_acc:
-                best_acc = test_acc
+            if test_f1 > best_f1:
+                best_f1 = test_f1
                 torch.save(q_encoder.state_dict(), SAVE_PATH)
-                print("save best model on test set")
+                print("save best model on test set with best F1 score")

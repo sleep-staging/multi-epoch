@@ -23,7 +23,7 @@ BATCH_SIZE = 1
 POS_MIN = 1
 NEG_MIN = 15
 EPOCH_LEN = 7
-NUM_SAMPLES = 250
+NUM_SAMPLES = 2000
 SUBJECTS = np.arange(83)
 RECORDINGS = [1, 2]
 
@@ -360,6 +360,9 @@ tau_pos, tau_neg = int(sfreq * POS_MIN * 60), int(sfreq * NEG_MIN * 60)
 
 n_examples_pretext = NUM_SAMPLES * len(splitted["pretext"].datasets)
 
+print(f'Number of pretext subjects: {len(splitted["pretext"].datasets)}')
+print(f'Number of pretext epochs: {n_examples_pretext}')
+
 pretext_sampler = RelativePositioningSampler(
     splitted["train"].get_metadata(),
     tau_pos=tau_pos,
@@ -378,7 +381,7 @@ pretext_loader = DataLoader(
 )
 
 train_loader = DataLoader(
-    splitted["train"], batch_size=BATCH_SIZE, shuffle= True
+    splitted["train"], batch_size=BATCH_SIZE, shuffle= False
 )
 
 test_loader = DataLoader(

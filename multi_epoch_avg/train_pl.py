@@ -7,6 +7,7 @@ import pytorch_lightning as pl
 from torchmetrics.functional import accuracy, f1, cohen_kappa
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.nn as nn
+from sklearn.metrics import balanced_accuracy_score
 
 
 # For train and pretrain
@@ -111,9 +112,12 @@ def evaluate_loop(q_encoder, train_loader, test_loader, wandb, EPOCH):
          
                 self.val_dict = {"Valid F1": f1_score,
                             "Valid Kappa":cohen_kappa(epoch_preds,epoch_targets,num_classes=5),
+                            "Valid Balanced Acc": balanced_accuracy_score(epoch_targets, epoch_preds.argmax(dim=1)),
                             "Valid Acc":epoch_acc,
                             "Valid Loss":epoch_loss,
                             "Epoch":self.EPOCH}
+                self.val_pd = epoch_preds
+                self.val_gt = epoch_targets
                       
             self.log('val_loss',epoch_loss)  
             self.scheduler.step(epoch_loss)
@@ -121,6 +125,9 @@ def evaluate_loop(q_encoder, train_loader, test_loader, wandb, EPOCH):
         def on_fit_end(self):
             self.wandb.log(self.val_dict)
             # self.wandb.log(self.train_dict)
+            
+            print("Logging confusion matrix ...")
+            wandb.log({f'conf_mat_{self.EPOCH}' : wandb.plot.confusion_matrix(probs=self.val_pd, y_true = self.val_gt ,class_names= ['Wake', 'N1', 'N2', 'N3', 'REM'])})
             
 
     pl.seed_everything(1234, workers = True)

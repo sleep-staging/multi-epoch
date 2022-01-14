@@ -1,7 +1,7 @@
 from augmentations import *
 from loss import loss_fn
 from model import sleep_model
-from train_pl import *
+from train import *
 from utils import *
 
 from braindecode.util import set_random_seeds
@@ -14,15 +14,15 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = r'C:\Users\likit\Desktop\SSL_approach\repos\ContraWR\SLEEP_data\sleep-edf-database-expanded-1.0.0\\'
+PATH = '/scratch/SLEEP_data/'
 
 # Params
 SAVE_PATH = "multi-epoch.pth"
 WEIGHT_DECAY = 1e-4
-BATCH_SIZE = 128
+BATCH_SIZE = 256
 lr = 5e-4
 n_epochs = 50
-NUM_WORKERS = 0
+NUM_WORKERS = 9
 N_DIM = 128
 EPOCH_LEN = 7
 
@@ -113,6 +113,10 @@ TEST_FILE = os.listdir(os.path.join(PATH, "test"))
 TEST_FILE.sort(key=natural_keys)
 TEST_FILE = [os.path.join(PATH, "test", f) for f in TEST_FILE]
 
+print(f'Number of pretext files: {len(PRETEXT_FILE)}')
+print(f'Number of train files: {len(TRAIN_FILE)}')
+print(f'Number of test files: {len(TEST_FILE)}')
+
 pretext_loader = DataLoader(pretext_data(PRETEXT_FILE), batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 train_loader = DataLoader(train_data(TRAIN_FILE), batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 test_loader = DataLoader(train_data(TEST_FILE), batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
@@ -120,13 +124,15 @@ test_loader = DataLoader(train_data(TEST_FILE), batch_size=BATCH_SIZE, shuffle=F
 ##############################################################################################################################
 
 
-wandb.init(
-    project="test",
-    notes="triplet loss",
-    save_code=True,
-    entity="sleep-staging",
-    name="epoch 7",
-)
+wb = wandb.init(
+        project="WTM",
+        notes="triplet loss, symmetric loss, 7 epoch length, 2000 samples, same learning rate, using logistic regression with saga solver",
+        save_code=True,
+        entity="sleep-staging",
+        name="multi-epoch, epoch=7, samples=2000, symmetric loss, saga",
+    )
+wb.save('/home2/vivek.talwar/multi-epoch/multi_epoch/*.py')
+wb.watch([q_encoder],log='all',log_freq=500)
 
 Pretext(
     q_encoder,
@@ -136,7 +142,9 @@ Pretext(
     pretext_loader,
     train_loader,
     test_loader,
-    wandb,
+    wb,
     device,
     SAVE_PATH
 )
+
+wb.finish()
