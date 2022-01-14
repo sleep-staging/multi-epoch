@@ -21,7 +21,7 @@ SAVE_PATH = "single-epoch.pth"
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 256
 lr = 5e-4
-n_epochs = 60
+n_epochs = 100
 NUM_WORKERS = 5
 N_DIM = 128
 EPOCH_LEN = 7
@@ -128,10 +128,10 @@ test_loader = DataLoader(train_data(TEST_FILE), batch_size=BATCH_SIZE, shuffle=F
 
 wb = wandb.init(
         project="WTM",
-        notes="single-epoch, triplet loss, symmetric loss, 7 epoch length, 2000 samples, same learning rate, using logistic regression with saga solver",
+        notes="single-epoch, triplet loss, asymmetric loss, 7 epoch length, 2000 samples, same learning rate, using logistic regression with saga solver",
         save_code=True,
         entity="sleep-staging",
-        name="single-epoch, epoch=7, samples=2000, symmetric loss, saga",
+        name="single-epoch, epoch=7, samples=2000, asymmetric loss, saga",
     )
 wb.save('/home2/vivek.talwar/multi-epoch/single_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
