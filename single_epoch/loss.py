@@ -21,15 +21,6 @@ class loss_fn(torch.nn.modules.loss._Loss):
         pos = F.normalize(pos, p=2, dim=1)  # B, 128
         neg = F.normalize(neg, p=2, dim=1)  # B, 128
 
-        # No contrastive loss -> bmm
-        pos_sim = torch.bmm(anc.unsqueeze(1), pos.transpose(1, 2))  # B, 1, 7
-        pos_sim = self.softmax(pos_sim / self.T)  # B, 1, 7
-        pos_agg = torch.bmm(pos_sim, pos).squeeze(1)  # B, 128
-
-        neg_sim = torch.bmm(anc.unsqueeze(1), neg.transpose(1, 2))  # B, 1, 7
-        neg_sim = self.softmax(neg_sim / self.T)  # B, 1, 7
-        neg_agg = torch.bmm(neg_sim, neg).squeeze(1)  # B, 128
-
         # Triplet loss
         l_pos = torch.exp(
             -torch.sum(torch.pow(anc - pos, 2), dim=1) / (2 * self.sigma ** 2)
@@ -38,7 +29,7 @@ class loss_fn(torch.nn.modules.loss._Loss):
             -torch.sum(torch.pow(anc - neg, 2), dim=1) / (2 * self.sigma ** 2)
         )
 
-        zero_matrix = torch.zeros_like(l_pos)
+        zero_matrix = torch.zeros(l_pos.shape).to(self.device)
         loss = torch.max(zero_matrix, l_neg - l_pos + self.margin).mean()
 
         return loss

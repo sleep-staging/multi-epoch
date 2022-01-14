@@ -17,12 +17,12 @@ from torch.utils.data import DataLoader, Dataset
 PATH = '/mnt/sleepx/'
 
 # Params
-SAVE_PATH = "multi-epoch.pth"
+SAVE_PATH = "single-epoch.pth"
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 256
 lr = 5e-4
-n_epochs = 50
-NUM_WORKERS = 9
+n_epochs = 60
+NUM_WORKERS = 5
 N_DIM = 128
 EPOCH_LEN = 7
 

@@ -107,6 +107,7 @@ def Pretext(
             aug1 = aug1.float()
             aug2 = aug2.float()
             neg = neg.float()
+
             aug1, aug2, neg = (
                 aug1.to(device),
                 aug2.to(device),
@@ -115,12 +116,10 @@ def Pretext(
         
             anc1_features = q_encoder(aug1, proj_first=True) #(B, 128)
             anc2_features = q_encoder(aug2, proj_first=True) #(B, 128)
-            
-           
+ 
             pos1_features = q_encoder(aug2, proj_first=False)  # (B, 128)
             pos2_features = q_encoder(aug1, proj_first=False)  # (B, 128)
             neg_features = q_encoder(neg, proj_first=False)  # (B, 128)
-
            
             # backprop
             loss1 = criterion(anc1_features, pos1_features, neg_features)
