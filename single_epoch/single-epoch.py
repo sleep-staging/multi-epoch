@@ -20,7 +20,7 @@ PATH = '/mnt/sleepx/'
 SAVE_PATH = "single-epoch.pth"
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 256
-lr = 5e-4
+lr = 5e-3
 n_epochs = 100
 NUM_WORKERS = 5
 N_DIM = 128
@@ -37,6 +37,7 @@ rng = np.random.RandomState(random_state)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 if device == "cuda":
     torch.backends.cudnn.benchmark = True
+    print("Using CUDA!\n")
 
 set_random_seeds(seed=random_state, cuda=device == "cuda")
 
@@ -128,10 +129,10 @@ test_loader = DataLoader(train_data(TEST_FILE), batch_size=BATCH_SIZE, shuffle=F
 
 wb = wandb.init(
         project="WTM",
-        notes="single-epoch, triplet loss, asymmetric loss, 7 epoch length, 2000 samples, same learning rate, using logistic regression with saga solver",
+        notes="single-epoch, triplet loss, symmetric loss, 7 epoch length, 2000 samples, same learning rate, using logistic regression with saga solver, with lr=5e-3",
         save_code=True,
         entity="sleep-staging",
-        name="single-epoch, epoch=7, samples=2000, asymmetric loss, saga",
+        name="single-epoch, epoch=7, samples=2000, symmetric loss, saga",
     )
 wb.save('/home2/vivek.talwar/multi-epoch/single_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)

@@ -95,10 +95,6 @@ def Pretext(
     pretext_loss = []
 
     for epoch in range(Epoch):
-
-        print('=========================================================\n')
-        print("Epoch: {}".format(epoch))
-        print('=========================================================\n')
         
         for index, (aug1, aug2, neg) in enumerate(
             tqdm(pretext_loader, desc="pretrain")
@@ -116,25 +112,19 @@ def Pretext(
             num_len = aug1.shape[1]
 
             pos1_features = []
-            pos2_features = []
             neg_features = []
         
             anc1_features = q_encoder(aug1[:, num_len // 2], proj_first=True) #(B, 128)
-            anc2_features = q_encoder(aug2[:, num_len // 2], proj_first=True) #(B, 128)
             
             for i in range(num_len):
                 pos1_features.append(q_encoder(aug2[:, i], proj_first=False))  # (B, 128)
-                pos2_features.append(q_encoder(aug1[:, i], proj_first=False))  # (B, 128)
                 neg_features.append(q_encoder(neg[:, i], proj_first=False))  # (B, 128)
 
             pos1_features = torch.stack(pos1_features, dim=1)  # (B, 7, 128)
-            pos2_features = torch.stack(pos2_features, dim=1)  # (B, 7, 128)
             neg_features = torch.stack(neg_features, dim=1)  # (B, 7, 128)
            
             # backprop
-            loss1 = criterion(anc1_features, pos1_features, neg_features)
-            loss2 = criterion(anc2_features, pos2_features, neg_features)
-            loss = loss1 + loss2
+            loss = criterion(anc1_features, pos1_features, neg_features)
 
             # loss back
             all_loss.append(loss.item())
@@ -165,18 +155,18 @@ def Pretext(
         wandb.log({"Valid Kappa": test_kappa, "Epoch": epoch})
         wandb.log({"Valid Balanced Acc": bal_acc, "Epoch": epoch})
 
-        # if epoch >= 30 and (epoch + 1) % 10 == 0:
-        #     print("Logging confusion matrix ...")
-        #     wandb.log(
-        #         {
-        #             f"conf_mat_{epoch}": wandb.plot.confusion_matrix(
-        #                 probs=None, 
-        #                 y_true=gt,
-        #                 preds=pd,
-        #                 class_names=["Wake", "N1", "N2", "N3", "REM"],
-        #             )
-        #         }
-        #     )
+        if epoch >= 30 and (epoch + 1) % 10 == 0:
+            print("Logging confusion matrix ...")
+            wandb.log(
+                {
+                    f"conf_mat_{epoch}": wandb.plot.confusion_matrix(
+                        probs=None, 
+                        y_true=gt,
+                        preds=pd,
+                        class_names=["Wake", "N1", "N2", "N3", "REM"],
+                    )
+                }
+            )
         
 
         if epoch > 5:

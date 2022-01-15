@@ -95,6 +95,10 @@ def Pretext(
     pretext_loss = []
 
     for epoch in range(Epoch):
+
+        print('=========================================================\n')
+        print("Epoch: {}".format(epoch))
+        print('=========================================================\n')
         
         for index, (aug1, aug2, neg) in enumerate(
             tqdm(pretext_loader, desc="pretrain")
@@ -161,18 +165,18 @@ def Pretext(
         wandb.log({"Valid Kappa": test_kappa, "Epoch": epoch})
         wandb.log({"Valid Balanced Acc": bal_acc, "Epoch": epoch})
 
-        if epoch >= 30 and (epoch + 1) % 10 == 0:
-            print("Logging confusion matrix ...")
-            wandb.log(
-                {
-                    f"conf_mat_{epoch}": wandb.plot.confusion_matrix(
-                        probs=None, 
-                        y_true=gt,
-                        preds=pd,
-                        class_names=["Wake", "N1", "N2", "N3", "REM"],
-                    )
-                }
-            )
+        # if epoch >= 30 and (epoch + 1) % 10 == 0:
+        #     print("Logging confusion matrix ...")
+        #     wandb.log(
+        #         {
+        #             f"conf_mat_{epoch}": wandb.plot.confusion_matrix(
+        #                 probs=None, 
+        #                 y_true=gt,
+        #                 preds=pd,
+        #                 class_names=["Wake", "N1", "N2", "N3", "REM"],
+        #             )
+        #         }
+        #     )
         
 
         if epoch > 5:
