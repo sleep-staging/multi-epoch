@@ -131,7 +131,7 @@ wb = wandb.init(
         entity="sleep-staging",
         name="multi-epoch, epoch=7, samples=2000, asymmetric loss, saga",
     )
-wb.save('/home2/vivek.talwar/multi-epoch/multi_epoch/*.py')
+wb.save('multi-epoch/multi_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
 
 Pretext(
@@ -147,4 +147,5 @@ Pretext(
     SAVE_PATH
 )
 
+wb.save(SAVE_PATH)
 wb.finish()

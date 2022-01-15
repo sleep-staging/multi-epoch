@@ -37,7 +37,7 @@ rng = np.random.RandomState(random_state)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 if device == "cuda":
     torch.backends.cudnn.benchmark = True
-    print("Using CUDA!\n")
+    print("GPU available")
 
 set_random_seeds(seed=random_state, cuda=device == "cuda")
 
@@ -134,7 +134,7 @@ wb = wandb.init(
         entity="sleep-staging",
         name="single-epoch, epoch=7, samples=2000, symmetric loss, saga",
     )
-wb.save('/home2/vivek.talwar/multi-epoch/single_epoch/*.py')
+wb.save('multi-epoch/single_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
 
 Pretext(
@@ -150,4 +150,5 @@ Pretext(
     SAVE_PATH
 )
 
+wb.save(SAVE_PATH)
 wb.finish()

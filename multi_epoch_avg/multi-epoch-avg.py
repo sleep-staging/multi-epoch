@@ -14,13 +14,13 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/scratch/SLEEP_data/'
+PATH = '/mnt/sleepx/'
 
 # Params
 SAVE_PATH = "multi-epoch-avg.pth"
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 256
-lr = 5e-4
+lr = 5e-3
 n_epochs = 100
 NUM_WORKERS = 9
 N_DIM = 128
@@ -37,6 +37,7 @@ rng = np.random.RandomState(random_state)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 if device == "cuda":
     torch.backends.cudnn.benchmark = True
+    print("GPU available")
 
 set_random_seeds(seed=random_state, cuda=device == "cuda")
 
@@ -131,7 +132,7 @@ wb = wandb.init(
         entity="sleep-staging",
         name="multi-epoch-avg, epoch=7, samples=2000, asymmetric loss, saga",
     )
-wb.save('/home2/vivek.talwar/multi-epoch/multi_epoch_avg/*.py')
+wb.save('multi-epoch/multi_epoch_avg/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
 
 Pretext(
@@ -147,4 +148,5 @@ Pretext(
     SAVE_PATH
 )
 
+wb.save(SAVE_PATH)
 wb.finish()

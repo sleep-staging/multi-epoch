@@ -187,7 +187,7 @@ def Pretext(
             )
             wandb.log({"accuracy std": np.std(acc_score[-5:]), "Epoch": epoch})
 
-            if test_f1 > best_f1:
-                best_f1 = test_f1
-                torch.save(q_encoder.state_dict(), SAVE_PATH)
-                print("save best model on test set with best F1 score")
+        if test_f1 > best_f1:
+            best_f1 = test_f1
+            torch.save(q_encoder.state_dict(), SAVE_PATH)
+            print("save best model on test set with best F1 score")

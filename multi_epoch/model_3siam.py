@@ -36,16 +36,24 @@ def sleep_model(n_channels, input_size_samples, n_dim=128):
                 nn.Linear(self.n_dim, self.n_dim, bias=True),
             )
 
-        def forward(self, x, proj_first=True):
+            self.p3 = nn.Sequential(
+                nn.Linear(128, self.n_dim, bias=True),
+                nn.ReLU(),
+                nn.Linear(self.n_dim, self.n_dim, bias=True),
+            )
+
+        def forward(self, x, proj='anc'):
             
             x = self.enc(x)
             
-            if proj_first:
+            if proj == 'anc':
                 x = self.p1(x)
                 return x
-            else:
+            elif proj == 'pos':
                 x = self.p2(x)
-                
                 return x
-            
+            elif proj == 'neg':
+                x = self.p3(x)
+                return x
+
     return Net(encoder, n_dim)
