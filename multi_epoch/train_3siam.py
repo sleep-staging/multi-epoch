@@ -119,13 +119,13 @@ def Pretext(
             pos2_features = []
             neg_features = []
         
-            anc1_features = q_encoder(aug1[:, num_len // 2], proj_first=True) #(B, 128)
-            anc2_features = q_encoder(aug2[:, num_len // 2], proj_first=True) #(B, 128)
+            anc1_features = q_encoder(aug1[:, num_len // 2], proj='anc') #(B, 128)
+            anc2_features = q_encoder(aug2[:, num_len // 2], proj='anc') #(B, 128)
             
             for i in range(num_len):
-                pos1_features.append(q_encoder(aug2[:, i], proj_first=False))  # (B, 128)
-                pos2_features.append(q_encoder(aug1[:, i], proj_first=False))  # (B, 128)
-                neg_features.append(q_encoder(neg[:, i], proj_first=False))  # (B, 128)
+                pos1_features.append(q_encoder(aug2[:, i], proj='pos'))  # (B, 128)
+                pos2_features.append(q_encoder(aug1[:, i], proj='pos'))  # (B, 128)
+                neg_features.append(q_encoder(neg[:, i], proj='neg'))  # (B, 128)
 
             pos1_features = torch.stack(pos1_features, dim=1)  # (B, 7, 128)
             pos2_features = torch.stack(pos2_features, dim=1)  # (B, 7, 128)

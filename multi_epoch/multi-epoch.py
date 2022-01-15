@@ -1,7 +1,7 @@
 from augmentations import *
 from loss import loss_fn
-from model import sleep_model
-from train_asym import *
+from model_3siam import sleep_model
+from train_3siam import *
 from utils import *
 
 from braindecode.util import set_random_seeds
@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader, Dataset
 PATH = '/mnt/sleepx/'
 
 # Params
-SAVE_PATH = "multi-epoch.pth"
+SAVE_PATH = "multi-epoch-3siam.pth"
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 256
 lr = 5e-3
@@ -126,10 +126,10 @@ test_loader = DataLoader(train_data(TEST_FILE), batch_size=BATCH_SIZE, shuffle=F
 
 wb = wandb.init(
         project="WTM",
-        notes="triplet loss, asymmetric loss, 7 epoch length, 2000 samples, same learning rate, using logistic regression with saga solver, lr=5e-3",
+        notes="triplet loss, asymmetric loss, 7 epoch length, 2000 samples, same learning rate, using logistic regression with saga solver, lr=5e-3, 3 siamese networks",
         save_code=True,
         entity="sleep-staging",
-        name="multi-epoch, epoch=7, samples=2000, asymmetric loss, saga",
+        name="multi-epoch, epoch=7, samples=2000, 3siam",
     )
 wb.save('multi-epoch/multi_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
