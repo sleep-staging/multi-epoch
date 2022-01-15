@@ -129,7 +129,7 @@ wb = wandb.init(
         notes="triplet loss, asymmetric loss, 7 epoch length, 2000 samples, same learning rate, using logistic regression with saga solver, lr=5e-3, 3 siamese networks",
         save_code=True,
         entity="sleep-staging",
-        name="multi-epoch, epoch=7, samples=2000, 3siam",
+        name="multi-epoch-3siam, epoch=7, samples=2000, symmetric loss",
     )
 wb.save('multi-epoch/multi_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
@@ -147,5 +147,4 @@ Pretext(
     SAVE_PATH
 )
 
-wb.save(SAVE_PATH)
 wb.finish()

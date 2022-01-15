@@ -190,4 +190,5 @@ def Pretext(
             if test_f1 > best_f1:
                 best_f1 = test_f1
                 torch.save(q_encoder.state_dict(), SAVE_PATH)
+                wandb.save(SAVE_PATH)
                 print("save best model on test set with best F1 score")

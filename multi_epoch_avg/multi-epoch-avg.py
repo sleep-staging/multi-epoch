@@ -148,5 +148,4 @@ Pretext(
     SAVE_PATH
 )
 
-wb.save(SAVE_PATH)
 wb.finish()

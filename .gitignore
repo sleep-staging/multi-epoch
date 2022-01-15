@@ -3,3 +3,4 @@ __pycache__/
 wandb/
 .vscode/
 /*/__pycache__/
+helper.sh
