@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import Sampler
 from sklearn.utils import check_random_state
 
-PATH = '/mnt/sleepx/'
+PATH = '/mnt/sleep1/'
 
 
 # Params
