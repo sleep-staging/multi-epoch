@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/mnt/sleepx/'
+PATH = '/mnt/sleep1/'
 
 # Params
 SAVE_PATH = "multi-epoch.pth"
@@ -22,7 +22,7 @@ WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 256
 lr = 5e-4
 n_epochs = 100
-NUM_WORKERS = 2
+NUM_WORKERS = 3
 N_DIM = 128
 EPOCH_LEN = 7
 
@@ -125,11 +125,11 @@ test_loader = DataLoader(train_data(TEST_FILE), batch_size=BATCH_SIZE, shuffle=F
 
 
 wb = wandb.init(
-        project="WTM",
+        project="WTM-new",
         notes="triplet loss, symmetric loss, 7 epoch length, 2000 samples, using logistic regression with saga solver",
         save_code=True,
         entity="sleep-staging",
-        name="multi-epoch,samples=2000, symmetric loss,cosine anneal",
+        name="multi-epoch,samples=2000,symmetric loss,saga",
     )
 wb.save('multi-epoch/multi_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)

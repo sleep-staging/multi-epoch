@@ -337,7 +337,6 @@ if not os.path.exists(TRAIN_PATH): os.mkdir(TRAIN_PATH)
 if not os.path.exists(TEST_PATH): os.mkdir(TEST_PATH)
 
 
-split_ids = {"pretext": sub_pretext, "train": sub_train, "test": sub_test}
 splitted = dict()
 
 splitted["pretext"] = RelativePositioningDataset(
@@ -364,7 +363,7 @@ print(f'Number of pretext subjects: {len(splitted["pretext"].datasets)}')
 print(f'Number of pretext epochs: {n_examples_pretext}')
 
 pretext_sampler = RelativePositioningSampler(
-    splitted["train"].get_metadata(),
+    splitted["pretext"].get_metadata(),
     tau_pos=tau_pos,
     tau_neg=tau_neg,
     n_examples=n_examples_pretext,

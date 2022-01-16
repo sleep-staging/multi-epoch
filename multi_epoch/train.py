@@ -88,10 +88,10 @@ def Pretext(
     step = 0
     best_f1 = 0
 
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    #     optimizer, mode="min", factor=0.2, patience=5
-    # )
-    scheduler = CosineAnnealingWarmupRestarts(optimizer, first_cycle_steps = 500, cycle_mult = 1.2, max_lr = 0.01, min_lr = 5e-6, warmup_steps = 100, gamma = 0.5)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.2, patience=5
+    )
+    # scheduler = CosineAnnealingWarmupRestarts(optimizer, first_cycle_steps = 500, cycle_mult = 1.2, max_lr = 0.01, min_lr = 5e-6, warmup_steps = 100, gamma = 0.5)
 
     all_loss, acc_score = [], []
     pretext_loss = []
@@ -146,15 +146,15 @@ def Pretext(
             loss.backward()
             optimizer.step()  # only update encoder_q
 
-            # N = 1000
-            # if (step + 1) % N == 0:
-            #     scheduler.step(sum(all_loss[-50:]))
-            #     lr = optimizer.param_groups[0]["lr"]
-            #     wandb.log({"ssl_lr": lr, "Epoch": epoch})
-            # step += 1
-            scheduler.step()
-            lr = optimizer.param_groups[0]["lr"]
-            wandb.log({"ssl_lr": lr, "Epoch": epoch})
+            N = 1000
+            if (step + 1) % N == 0:
+                scheduler.step(sum(all_loss[-50:]))
+                lr = optimizer.param_groups[0]["lr"]
+                wandb.log({"ssl_lr": lr, "Epoch": epoch})
+            step += 1
+            # scheduler.step()
+            # lr = optimizer.param_groups[0]["lr"]
+            # wandb.log({"ssl_lr": lr, "Epoch": epoch})
 
 
         test_acc, _, test_f1, test_kappa, bal_acc, gt, pd = evaluate(
