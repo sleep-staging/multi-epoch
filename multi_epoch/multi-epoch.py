@@ -129,7 +129,7 @@ wb = wandb.init(
         notes="triplet loss, symmetric loss, 7 epoch length, 2000 samples, using logistic regression with saga solver",
         save_code=True,
         entity="sleep-staging",
-        name="multi-epoch,samples=2000,symmetric loss,saga",
+        name="multi-epoch, symmetric loss",
     )
 wb.save('multi-epoch/multi_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
