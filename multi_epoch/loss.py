@@ -3,7 +3,7 @@ import torch.nn.functional as F
 
 # Loss function
 class loss_fn(torch.nn.modules.loss._Loss):
-    def __init__(self, device, margin=0.5, sigma=2.0, T=2.0):
+    def __init__(self, device, margin=0.5, sigma=2.0, T=2):
         """
         T: softmax temperature (default: 0.07)
         """
