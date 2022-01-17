@@ -209,16 +209,13 @@ class RelativePositioningDataset(BaseConcatDataset):
             pos_data.append(super().__getitem__(pos + i)[0])
 
         pos_data = np.stack(pos_data, axis=0) # (7, 2, 3000)
-
-        
+  
         cont_neg_data = []
         for idx in neg:
             neg_data = []
            
             for i in range(-(self.epoch_len // 2), self.epoch_len // 2 + 1):
                 neg_data.append(super().__getitem__(idx + i)[0])
-
-           
 
             neg_data = np.stack(neg_data, axis=0) # (7, 2, 3000)
             cont_neg_data.append(neg_data)
@@ -342,6 +339,7 @@ class RelativePositioningSampler(RecordingSampler):
 ######################################################################################################################
 
 
+SUBJECTS_PATH = os.path.join(PATH, "subjects")
 PRETEXT_PATH = os.path.join(PATH, "pretext")
 TRAIN_PATH = os.path.join(PATH, "train")
 TEST_PATH = os.path.join(PATH, "test")
@@ -367,49 +365,75 @@ splitted["test"] = TuneDataset(
 )
 
 
+########################################################################################################################
 
-# Sampler
-tau_pos, tau_neg = int(sfreq * POS_MIN * 60), int(sfreq * NEG_MIN * 60)
+# Save subjects
 
-n_examples_pretext = NUM_SAMPLES * len(splitted["pretext"].datasets)
+if not os.path.exists(SUBJECTS_PATH): os.mkdir(SUBJECTS_PATH)
 
-print(f'Number of pretext subjects: {len(splitted["pretext"].datasets)}')
-print(f'Number of pretext epochs: {n_examples_pretext}')
+subjects_data = [(TuneDataset([sub]), sub.description) for sub in windows_dataset.datasets if sub.description["subject"] in sub_pretext]
 
-pretext_sampler = RelativePositioningSampler(
-    splitted["pretext"].get_metadata(),
-    tau_pos=tau_pos,
-    tau_neg=tau_neg,
-    n_examples=n_examples_pretext,
-    same_rec_neg=True,
-    random_state=random_state  # Same samples for every iteration of dataloader
-)
-
-
-# Dataloader
-pretext_loader = DataLoader(
-    splitted["pretext"],
-    batch_size=BATCH_SIZE,
-    sampler=pretext_sampler
-)
-
-train_loader = DataLoader(
-    splitted["train"], batch_size=BATCH_SIZE, shuffle= False
-)
-
-test_loader = DataLoader(
-    splitted["test"], batch_size=BATCH_SIZE, shuffle=False
-    )
-
-for i, arr in tqdm(enumerate(pretext_loader), desc = 'pretext'):
-    temp_path = os.path.join(PRETEXT_PATH, str(i) + '.npz')
-    np.savez(temp_path, pos = arr[0].numpy().squeeze(0), neg = arr[1].numpy().squeeze(0))
+sub_id = 0
+for sub_data, sub_desc in subjects_data:
   
-for i, arr in tqdm(enumerate(train_loader), desc = 'train'):
-    temp_path = os.path.join(TRAIN_PATH, str(i) + '.npz')
-    np.savez(temp_path, x = arr[0].numpy().squeeze(0), y = arr[1].numpy().squeeze(0))
+    print(f"sub_id: %d" % sub_id)
+    if not os.path.exists(os.path.join(SUBJECTS_PATH, str(sub_id))):
+        os.mkdir(os.path.join(SUBJECTS_PATH, str(sub_id)))
+
+    k = 0
+    for i, (X, y) in enumerate(sub_data):
+        np.save(os.path.join(SUBJECTS_PATH, str(sub_id), str(k)), X)
+        k += 1
+        
+    sub_id += 1
+
+
+
+
+
+
+# # Sampler
+# tau_pos, tau_neg = int(sfreq * POS_MIN * 60), int(sfreq * NEG_MIN * 60)
+
+# n_examples_pretext = NUM_SAMPLES * len(splitted["pretext"].datasets)
+
+# print(f'Number of pretext subjects: {len(splitted["pretext"].datasets)}')
+# print(f'Number of pretext epochs: {n_examples_pretext}')
+
+# pretext_sampler = RelativePositioningSampler(
+#     splitted["pretext"].get_metadata(),
+#     tau_pos=tau_pos,
+#     tau_neg=tau_neg,
+#     n_examples=n_examples_pretext,
+#     same_rec_neg=True,
+#     random_state=random_state  # Same samples for every iteration of dataloader
+# )
+
+
+# # Dataloader
+# pretext_loader = DataLoader(
+#     splitted["pretext"],
+#     batch_size=BATCH_SIZE,
+#     sampler=pretext_sampler
+# )
+
+# train_loader = DataLoader(
+#     splitted["train"], batch_size=BATCH_SIZE, shuffle= False
+# )
+
+# test_loader = DataLoader(
+#     splitted["test"], batch_size=BATCH_SIZE, shuffle=False
+#     )
+
+# for i, arr in tqdm(enumerate(pretext_loader), desc = 'pretext'):
+#     temp_path = os.path.join(PRETEXT_PATH, str(i) + '.npz')
+#     np.savez(temp_path, pos = arr[0].numpy().squeeze(0), neg = arr[1].numpy().squeeze(0))
+  
+# for i, arr in tqdm(enumerate(train_loader), desc = 'train'):
+#     temp_path = os.path.join(TRAIN_PATH, str(i) + '.npz')
+#     np.savez(temp_path, x = arr[0].numpy().squeeze(0), y = arr[1].numpy().squeeze(0))
     
-for i, arr in tqdm(enumerate(test_loader), desc = 'test'):
-    temp_path = os.path.join(TEST_PATH, str(i) + '.npz')
-    np.savez(temp_path, x = arr[0].numpy().squeeze(0), y = arr[1].numpy().squeeze(0))
+# for i, arr in tqdm(enumerate(test_loader), desc = 'test'):
+#     temp_path = os.path.join(TEST_PATH, str(i) + '.npz')
+#     np.savez(temp_path, x = arr[0].numpy().squeeze(0), y = arr[1].numpy().squeeze(0))
     
