@@ -214,9 +214,11 @@ class RelativePositioningDataset(BaseConcatDataset):
         cont_neg_data = []
         for idx in neg:
             neg_data = []
-            print(f"idx: {idx}")
+           
             for i in range(-(self.epoch_len // 2), self.epoch_len // 2 + 1):
                 neg_data.append(super().__getitem__(idx + i)[0])
+
+           
 
             neg_data = np.stack(neg_data, axis=0) # (7, 2, 3000)
             cont_neg_data.append(neg_data)
@@ -375,7 +377,7 @@ print(f'Number of pretext subjects: {len(splitted["pretext"].datasets)}')
 print(f'Number of pretext epochs: {n_examples_pretext}')
 
 pretext_sampler = RelativePositioningSampler(
-    splitted["train"].get_metadata(),
+    splitted["pretext"].get_metadata(),
     tau_pos=tau_pos,
     tau_neg=tau_neg,
     n_examples=n_examples_pretext,
