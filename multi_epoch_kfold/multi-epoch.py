@@ -1,7 +1,7 @@
 from augmentations import *
 from loss import loss_fn
 from model import sleep_model
-from train import *
+from train_kfold import *
 from utils import *
 
 from braindecode.util import set_random_seeds
@@ -105,27 +105,32 @@ PRETEXT_FILE = os.listdir(os.path.join(PATH, "pretext"))
 PRETEXT_FILE.sort(key=natural_keys)
 PRETEXT_FILE = [os.path.join(PATH, "pretext", f) for f in PRETEXT_FILE]
 
-TRAIN_FILE = os.listdir(os.path.join(PATH, "train"))
-TRAIN_FILE.sort(key=natural_keys)
-TRAIN_FILE = [os.path.join(PATH, "train", f) for f in TRAIN_FILE]
-
 TEST_FILE = os.listdir(os.path.join(PATH, "test"))
 TEST_FILE.sort(key=natural_keys)
 TEST_FILE = [os.path.join(PATH, "test", f) for f in TEST_FILE]
 
 print(f'Number of pretext files: {len(PRETEXT_FILE)}')
-print(f'Number of train files: {len(TRAIN_FILE)}')
-print(f'Number of test files: {len(TEST_FILE)}')
+print(f'Number of test records: {len(TEST_FILE)}')
 
 pretext_loader = DataLoader(pretext_data(PRETEXT_FILE), batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
-train_loader = DataLoader(train_data(TRAIN_FILE), batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
-test_loader = DataLoader(train_data(TEST_FILE), batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+
+test_records = [np.load(f) for f in TEST_FILE]
+test_subjects = dict()
+
+for i, rec in enumerate(test_records):
+    if rec['_description'][0] not in test_subjects.keys():
+        test_subjects[rec['_description'][0]] = [rec]
+    else:
+        test_subjects[rec['_description'][0]].append(rec)
+
+test_subjects = list(test_subjects.values())
+
 
 ##############################################################################################################################
 
 
 wb = wandb.init(
-        project="WTM-300",
+        project="WTM-500",
         notes="triplet loss, symmetric loss, 7 epoch length, 300 samples, using logistic regression with lbfgs solver",
         save_code=True,
         entity="sleep-staging",
@@ -134,17 +139,6 @@ wb = wandb.init(
 wb.save('multi-epoch/multi_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
 
-Pretext(
-    q_encoder,
-    optimizer,
-    n_epochs,
-    criterion,
-    pretext_loader,
-    train_loader,
-    test_loader,
-    wb,
-    device,
-    SAVE_PATH
-)
+Pretext(q_encoder, optimizer, n_epochs, criterion, pretext_loader, test_subjects, wb, device, SAVE_PATH)
 
 wb.finish()

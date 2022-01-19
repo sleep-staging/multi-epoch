@@ -6,7 +6,7 @@ from sklearn.metrics import (
     balanced_accuracy_score
 )
 import torch
-from sklearn.linear_model import LogisticRegression as LR
+from sklearn.linear_model import LogisticRegression 
 from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 import numpy as np
@@ -55,7 +55,7 @@ def task(X_train, X_test, y_train, y_test):
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
 
-    cls = LR(solver="saga", multi_class="multinomial", max_iter= 5000, n_jobs=-1, dual = False)
+    cls = LogisticRegression(penalty='l2', C=1.0, class_weight='balanced', solver='lbfgs', multi_class='multinomial', random_state=1234, n_jobs=-1)
     cls.fit(X_train, y_train)
     pred = cls.predict(X_test)
 
