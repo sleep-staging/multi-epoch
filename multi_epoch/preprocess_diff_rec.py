@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import Sampler
 from sklearn.utils import check_random_state
 
-PATH = '/mnt/sleep300diff/'
+PATH = '/mnt/sleep500diff/'
 
 
 # Params
@@ -23,7 +23,7 @@ BATCH_SIZE = 1
 POS_MIN = 1
 NEG_MIN = 15
 EPOCH_LEN = 7
-NUM_SAMPLES = 300
+NUM_SAMPLES = 500
 SUBJECTS = np.arange(83)
 RECORDINGS = [1, 2]
 
