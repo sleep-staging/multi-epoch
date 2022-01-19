@@ -129,7 +129,7 @@ wb = wandb.init(
         notes="triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with lbfgs solver",
         save_code=True,
         entity="sleep-staging",
-        name="multi-epoch, symmetric loss, diff rec neg",
+        name="multi-epoch, symmetric loss, diff rec neg, lbfgs",
     )
 wb.save('multi-epoch/multi_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)

@@ -55,7 +55,7 @@ def task(X_train, X_test, y_train, y_test):
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
 
-    cls = LogisticRegression(penalty='l2', C=1.0, class_weight='balanced', solver='lbfgs', multi_class='multinomial', random_state=1234, n_jobs=-1)
+    cls = LogisticRegression(penalty='l2', C=1.0, class_weight='balanced', solver='lbfgs', multi_class='multinomial', random_state=1234, n_jobs=-1, max_iter = 2000)
     cls.fit(X_train, y_train)
     pred = cls.predict(X_test)
 

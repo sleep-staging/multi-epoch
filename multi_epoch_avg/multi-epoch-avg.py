@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/mnt/sleep300diff/'
+PATH = '/mnt/sleep500diff/'
 
 # Params
 SAVE_PATH = "multi-epoch-avg.pth"
@@ -126,11 +126,11 @@ test_loader = DataLoader(train_data(TEST_FILE), batch_size=BATCH_SIZE, shuffle=F
 
 
 wb = wandb.init(
-        project="WTM-300",
-        notes="triplet loss, symmetric loss, 7 epoch length, avg of features instead of weights, 300 samples, lr=5e-4, using logistic regression with lbfgs solver",
+        project="WTM-500",
+        notes="triplet loss, symmetric loss, 7 epoch length, avg of features instead of weights, 500 samples, lr=5e-4, using logistic regression with lbfgs solver",
         save_code=True,
         entity="sleep-staging",
-        name="multi-epoch-avg, symmetric loss, diff rec neg",
+        name="multi-epoch-avg, symmetric loss, diff rec neg, lbfgs",
     )
 wb.save('multi-epoch/multi_epoch_avg/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
