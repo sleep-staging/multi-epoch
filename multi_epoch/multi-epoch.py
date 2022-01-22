@@ -19,9 +19,9 @@ PATH = '/mnt/sleep500diff/'
 # Params
 SAVE_PATH = "multi-epoch.pth"
 WEIGHT_DECAY = 1e-4
-BATCH_SIZE = 256
+BATCH_SIZE = 128
 lr = 5e-4
-n_epochs = 100
+n_epochs = 250
 NUM_WORKERS = 5
 N_DIM = 128
 EPOCH_LEN = 7

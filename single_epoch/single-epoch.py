@@ -14,14 +14,14 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/mnt/sleep1/'
+PATH = '/mnt/sleep500same/'
 
 # Params
-SAVE_PATH = "single-epoch.pth"
+SAVE_PATH = "single-epoch-same.pth"
 WEIGHT_DECAY = 1e-4
-BATCH_SIZE = 256
+BATCH_SIZE = 128
 lr = 5e-4
-n_epochs = 100
+n_epochs = 250
 NUM_WORKERS = 5
 N_DIM = 128
 EPOCH_LEN = 7
@@ -128,11 +128,11 @@ test_loader = DataLoader(train_data(TEST_FILE), batch_size=BATCH_SIZE, shuffle=F
 
 
 wb = wandb.init(
-        project="WTM-new",
-        notes="single-epoch, triplet loss, symmetric loss, 7 epoch length, 2000 samples,using logistic regression with saga solver, with lr=5e-4",
+        project="WTM-500",
+        notes="single-epoch, triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with lbfgs solver, with lr=5e-4",
         save_code=True,
         entity="sleep-staging",
-        name="single-epoch, symmetric loss",
+        name="single-epoch, symmetric loss, same rec neg, lbfgs",
     )
 wb.save('multi-epoch/single_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
