@@ -4,3 +4,4 @@ wandb/
 .vscode/
 /*/__pycache__/
 helper.sh
+/*/.ipynb_checkpoints/
