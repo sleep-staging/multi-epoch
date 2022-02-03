@@ -156,19 +156,18 @@ def Pretext(
             # lr = optimizer.param_groups[0]["lr"]
             # wandb.log({"ssl_lr": lr, "Epoch": epoch})
 
+        if epoch >= 70 and epoch % 5 == 0: 
+        
+            test_acc, _, test_f1, test_kappa, bal_acc, gt, pd = evaluate(
+                q_encoder, train_loader, test_loader, device
+            )
 
-        test_acc, _, test_f1, test_kappa, bal_acc, gt, pd = evaluate(
-            q_encoder, train_loader, test_loader, device
-        )
+            wandb.log({"ssl_loss": np.mean(pretext_loss), "Epoch": epoch})
 
-        acc_score.append(test_acc)
-
-        wandb.log({"ssl_loss": np.mean(pretext_loss), "Epoch": epoch})
-
-        wandb.log({"Valid Acc": test_acc, "Epoch": epoch})
-        wandb.log({"Valid F1": test_f1, "Epoch": epoch})
-        wandb.log({"Valid Kappa": test_kappa, "Epoch": epoch})
-        wandb.log({"Valid Balanced Acc": bal_acc, "Epoch": epoch})
+            wandb.log({"Valid Acc": test_acc, "Epoch": epoch})
+            wandb.log({"Valid F1": test_f1, "Epoch": epoch})
+            wandb.log({"Valid Kappa": test_kappa, "Epoch": epoch})
+            wandb.log({"Valid Balanced Acc": bal_acc, "Epoch": epoch})
 
         # if epoch >= 30 and (epoch + 1) % 10 == 0:
         #     print("Logging confusion matrix ...")
@@ -183,15 +182,7 @@ def Pretext(
         #         }
         #     )
         
-
         if epoch > 5:
-            print(
-                "recent five epoch, mean: {}, std: {}".format(
-                    np.mean(acc_score[-5:]), np.std(acc_score[-5:])
-                )
-            )
-            wandb.log({"accuracy std": np.std(acc_score[-5:]), "Epoch": epoch})
-
             if test_f1 > best_f1:
                 best_f1 = test_f1
                 torch.save(q_encoder.state_dict(), SAVE_PATH)

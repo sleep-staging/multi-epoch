@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/mnt/sleep500diff/'
+PATH = '/scratch/sleep500same/'
 
 # Params
 SAVE_PATH = "multi-epoch.pth"
@@ -130,7 +130,7 @@ wb = wandb.init(
         notes="triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with lbfgs solver",
         save_code=True,
         entity="sleep-staging",
-        name="multi-epoch, symmetric loss, diff rec neg, lbfgs",
+        name="multi-epoch, symmetric loss, same rec neg, lbfgs",
     )
 wb.save('multi-epoch/multi_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
