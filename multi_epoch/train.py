@@ -162,12 +162,12 @@ def Pretext(
                 q_encoder, train_loader, test_loader, device
             )
 
-            wandb.log({"ssl_loss": np.mean(pretext_loss), "Epoch": epoch})
+        wandb.log({"ssl_loss": np.mean(pretext_loss), "Epoch": epoch})
 
-            wandb.log({"Valid Acc": test_acc, "Epoch": epoch})
-            wandb.log({"Valid F1": test_f1, "Epoch": epoch})
-            wandb.log({"Valid Kappa": test_kappa, "Epoch": epoch})
-            wandb.log({"Valid Balanced Acc": bal_acc, "Epoch": epoch})
+        wandb.log({"Valid Acc": test_acc, "Epoch": epoch})
+        wandb.log({"Valid F1": test_f1, "Epoch": epoch})
+        wandb.log({"Valid Kappa": test_kappa, "Epoch": epoch})
+        wandb.log({"Valid Balanced Acc": bal_acc, "Epoch": epoch})
 
         # if epoch >= 30 and (epoch + 1) % 10 == 0:
         #     print("Logging confusion matrix ...")

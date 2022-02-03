@@ -70,12 +70,14 @@ def task(X_train, X_test, y_train, y_test):
 
     return acc, cm, f1, kappa, bal_acc, y_test, pred
 
+
 def kfold_evaluate(q_encoder, test_subjects, device, BATCH_SIZE):
 
     test_subjects = np.array(test_subjects)
     kfold = KFold(n_splits=5, shuffle=True, random_state=1234)
 
     total_acc, total_f1, total_kappa, total_bal_acc = [], [], [], []
+    i = 1
 
     for train_idx, test_idx in kfold.split(test_subjects):
 
@@ -92,6 +94,14 @@ def kfold_evaluate(q_encoder, test_subjects, device, BATCH_SIZE):
         total_f1.append(test_f1)
         total_kappa.append(test_kappa)
         total_bal_acc.append(bal_acc)
+        
+        print("+"*50)
+        print(f"Fold{i} acc: {test_acc}")
+        print(f"Fold{i} f1: {test_f1}")
+        print(f"Fold{i} kappa: {test_kappa}")
+        print(f"Fold{i} bal_acc: {bal_acc}")
+        print("+"*50)
+        i+=1 
 
     return np.mean(total_acc), np.mean(total_f1), np.mean(total_kappa), np.mean(total_bal_acc)
 
@@ -215,7 +225,7 @@ def Pretext(
             # lr = optimizer.param_groups[0]["lr"]
             # wandb.log({"ssl_lr": lr, "Epoch": epoch})
 
-        if (epoch+1) % 5 == 0:
+        if epoch >= 60 and (epoch) % 5 == 0:
 
             test_acc, test_f1, test_kappa, bal_acc = kfold_evaluate(
                 q_encoder, test_subjects, device, BATCH_SIZE
