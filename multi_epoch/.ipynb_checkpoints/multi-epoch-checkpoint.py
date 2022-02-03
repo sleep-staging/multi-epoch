@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader, Dataset
 PATH = '/scratch/sleep500same/'
 
 # Params
-SAVE_PATH = "multi-epoch-avg-same.pth"
+SAVE_PATH = "multi-epoch-same.pth"
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 128
 lr = 5e-4
@@ -41,7 +41,6 @@ if device == "cuda":
     print(f"GPU available: {torch.cuda.device_count()}")
     
 set_random_seeds(seed=random_state, cuda=device == "cuda")
-
 
 ##################################################################################################
 
@@ -128,12 +127,12 @@ test_loader = DataLoader(train_data(TEST_FILE), batch_size=BATCH_SIZE, shuffle=F
 
 wb = wandb.init(
         project="WTM-500",
-        notes="triplet loss, symmetric loss, 7 epoch length, avg of features instead of weights, 500 samples, lr=5e-4, using logistic regression with lbfgs solver",
+        notes="triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with lbfgs solver",
         save_code=True,
         entity="sleep-staging",
-        name="multi-epoch-avg, symmetric loss, same rec neg, lbfgs",
+        name="multi-epoch, symmetric loss, same rec neg, lbfgs",
     )
-wb.save('multi-epoch/multi_epoch_avg/*.py')
+wb.save('multi-epoch/multi_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
 
 Pretext(
