@@ -164,6 +164,12 @@ def Pretext(
             wandb.log({"Valid Kappa": test_kappa, "Epoch": epoch})
             wandb.log({"Valid Balanced Acc": bal_acc, "Epoch": epoch})
 
+            if test_f1 > best_f1:
+                best_f1 = test_f1
+                torch.save(q_encoder.state_dict(), SAVE_PATH)
+                wandb.save(SAVE_PATH)
+                print("save best model on test set with best F1 score")
+                
         # if epoch >= 30 and (epoch + 1) % 10 == 0:
         #     print("Logging confusion matrix ...")
         #     wandb.log(
@@ -177,10 +183,4 @@ def Pretext(
         #         }
         #     )
         
-
-        if epoch > 5:
-            if test_f1 > best_f1:
-                best_f1 = test_f1
-                torch.save(q_encoder.state_dict(), SAVE_PATH)
-                wandb.save(SAVE_PATH)
-                print("save best model on test set with best F1 score")
+            
