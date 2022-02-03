@@ -36,8 +36,9 @@ high_cut_hz = 30
 rng = np.random.RandomState(random_state)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 if device == "cuda":
-    torch.backends.cudnn.benchmark = True
-    print("GPU available")
+    torch.backends.cudnn.deterministic = True 
+    torch.backends.cudnn.benchmark = False
+    print(f"GPU available: {torch.cuda.device_count()}")
     
 set_random_seeds(seed=random_state, cuda=device == "cuda")
 
