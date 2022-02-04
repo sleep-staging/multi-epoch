@@ -150,15 +150,15 @@ def Pretext(
                 lr = optimizer.param_groups[0]["lr"]
                 wandb.log({"ssl_lr": lr, "Epoch": epoch})
             step += 1
+            
+        wandb.log({"ssl_loss": np.mean(pretext_loss), "Epoch": epoch})
 
         if epoch >= 70 and epoch % 5 == 0: 
             
             test_acc, _, test_f1, test_kappa, bal_acc, gt, pd = evaluate(
                 q_encoder, train_loader, test_loader, device
             )
-
-            wandb.log({"ssl_loss": np.mean(pretext_loss), "Epoch": epoch})
-
+            
             wandb.log({"Valid Acc": test_acc, "Epoch": epoch})
             wandb.log({"Valid F1": test_f1, "Epoch": epoch})
             wandb.log({"Valid Kappa": test_kappa, "Epoch": epoch})
