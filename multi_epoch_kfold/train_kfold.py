@@ -13,7 +13,15 @@ from tqdm import tqdm
 import numpy as np
 from utils import CosineAnnealingWarmupRestarts
 from torch.utils.data import DataLoader, Dataset
+from braindecode.util import set_random_seeds
 
+random_state = 1234
+# Seeds
+device = "cuda" if torch.cuda.is_available() else "cpu"
+if device == "cuda":
+    torch.backends.cudnn.deterministic = True 
+    torch.backends.cudnn.benchmark = False    
+set_random_seeds(seed=random_state, cuda=device == "cuda")
 
 
 # Train, test
@@ -58,7 +66,7 @@ def task(X_train, X_test, y_train, y_test):
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
 
-    cls = LogisticRegression(penalty='l2', C=1.0, class_weight='balanced', solver='lbfgs', multi_class='multinomial', random_state=1234, n_jobs=-1)
+    cls = LogisticRegression(penalty='l2', C=1.0, class_weight='balanced', solver='lbfgs', multi_class='multinomial', random_state=1234, n_jobs=-1, max_iter = 2000)
     cls.fit(X_train, y_train)
     pred = cls.predict(X_test)
 
@@ -85,8 +93,8 @@ def kfold_evaluate(q_encoder, test_subjects, device, BATCH_SIZE):
         test_subjects_train = [rec for sub in test_subjects_train for rec in sub]
         test_subjects_test = [rec for sub in test_subjects_test for rec in sub]
 
-        train_loader = DataLoader(TuneDataset(test_subjects_train), batch_size=BATCH_SIZE, shuffle=True, random_state=1234)
-        test_loader = DataLoader(TuneDataset(test_subjects_test), batch_size=BATCH_SIZE, shuffle= False, random_state=1234)
+        train_loader = DataLoader(TuneDataset(test_subjects_train), batch_size=BATCH_SIZE, shuffle=True, num_workers=4, persistent_workers=True)
+        test_loader = DataLoader(TuneDataset(test_subjects_test), batch_size=BATCH_SIZE, shuffle= False, num_workers=4, persistent_workers=True)
         test_acc, _, test_f1, test_kappa, bal_acc, gt, pd = evaluate(q_encoder, train_loader, test_loader, device)
 
         total_acc.append(test_acc)
@@ -222,7 +230,7 @@ def Pretext(
             # lr = optimizer.param_groups[0]["lr"]
             # wandb.log({"ssl_lr": lr, "Epoch": epoch})
 
-        if epoch >= 0 and (epoch) % 1 == 0:
+        if epoch >= 60 and (epoch) % 5 == 0:
 
             test_acc, test_f1, test_kappa, bal_acc = kfold_evaluate(
                 q_encoder, test_subjects, device, BATCH_SIZE

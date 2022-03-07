@@ -13,6 +13,15 @@ from tqdm import tqdm
 import numpy as np
 from utils import CosineAnnealingWarmupRestarts
 from torch.utils.data import DataLoader, Dataset
+from braindecode.util import set_random_seeds
+
+random_state = 1234
+# Seeds
+device = "cuda" if torch.cuda.is_available() else "cpu"
+if device == "cuda":
+    torch.backends.cudnn.deterministic = True 
+    torch.backends.cudnn.benchmark = False    
+set_random_seeds(seed=random_state, cuda=device == "cuda")
 
 
 
