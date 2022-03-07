@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import Sampler
 from sklearn.utils import check_random_state
 
-PATH = '/scratch/sleep500same/'
+PATH = '/mnt/sleep500mixed/'
 
 
 # Params
@@ -38,7 +38,6 @@ high_cut_hz = 30
 window_size_s = 30
 sfreq = 100
 window_size_samples = window_size_s * sfreq
-
 
 
 class SleepPhysionet(BaseConcatDataset):
@@ -280,7 +279,6 @@ class RelativePositioningSampler(RecordingSampler):
         tau_pos,
         tau_neg,
         n_examples,
-        same_rec_neg=True,
         random_state=None,
         epoch_len=7,
     ):
@@ -290,36 +288,40 @@ class RelativePositioningSampler(RecordingSampler):
         self.tau_neg = tau_neg
         self.epoch_len = epoch_len
         self.n_examples = n_examples
-        self.same_rec_neg = same_rec_neg
 
     def _sample_pair(self):
         
         """Sample a pair of two windows."""
         # Sample first window
         win_ind1, rec_ind1 = self.sample_window()
+        rng = np.random.RandomState(random_state)
         
-        ts1 = self.metadata.iloc[win_ind1]["i_start_in_trial"]
-        ts = self.info.iloc[rec_ind1]["i_start_in_trial"]
+        if rng.random > 0.5:
+            rec_ind2 = rec_ind1
+            while rec_ind2 == rec_ind1:
+                win_ind2, rec_ind2 = self.sample_window()
+        else:
+            ts1 = self.metadata.iloc[win_ind1]["i_start_in_trial"]
+            ts = self.info.iloc[rec_ind1]["i_start_in_trial"]
 
-        epoch_min = self.info.iloc[rec_ind1]["i_start_in_trial"][self.epoch_len // 2]
-        epoch_max = self.info.iloc[rec_ind1]["i_start_in_trial"][-self.epoch_len // 2]
-        
-        rng = np.random.Random
-        if self.same_rec_neg:
-            mask = ((ts <= ts1 - self.tau_neg) & (ts >= epoch_min)) | (
-                (ts >= ts1 + self.tau_neg) & (ts <= epoch_max)
-            )
+            epoch_min = self.info.iloc[rec_ind1]["i_start_in_trial"][self.epoch_len // 2]
+            epoch_max = self.info.iloc[rec_ind1]["i_start_in_trial"][-self.epoch_len // 2]
 
-        if sum(mask) == 0:
-            raise NotImplementedError
-        win_ind2 = self.rng.choice(self.info.iloc[rec_ind1]["index"][mask])
+            rng = np.random.Random
+            if self.same_rec_neg:
+                mask = ((ts <= ts1 - self.tau_neg) & (ts >= epoch_min)) | (
+                    (ts >= ts1 + self.tau_neg) & (ts <= epoch_max)
+                )
+
+            if sum(mask) == 0:
+                raise NotImplementedError
+            win_ind2 = self.rng.choice(self.info.iloc[rec_ind1]["index"][mask])
         
         return win_ind1, win_ind2
 
     def __iter__(self):
 
         for i in range(self.n_examples):
-
             yield self._sample_pair()
 
     def __len__(self):
@@ -368,7 +370,6 @@ pretext_sampler = RelativePositioningSampler(
     tau_pos=tau_pos,
     tau_neg=tau_neg,
     n_examples=n_examples_pretext,
-    same_rec_neg=True,
     random_state=random_state  # Same samples for every iteration of dataloader
 )
 
