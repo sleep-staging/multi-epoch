@@ -14,14 +14,14 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/mnt/sleep500same/'
+PATH = '/scratch/sleepkfoldsame/'
 
 # Params
-SAVE_PATH = "multi-epoch.pth"
+SAVE_PATH = "multi-epoch-kfold.pth"
 WEIGHT_DECAY = 1e-4
-BATCH_SIZE = 256
+BATCH_SIZE = 128
 lr = 5e-4
-n_epochs = 100
+n_epochs = 250
 NUM_WORKERS = 5
 N_DIM = 128
 EPOCH_LEN = 7
@@ -132,13 +132,13 @@ test_subjects = list(test_subjects.values())
 
 wb = wandb.init(
         project="WTM-500",
-        notes="triplet loss, symmetric loss, 7 epoch length, 300 samples, using logistic regression with lbfgs solver",
+        notes="triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with lbfgs solver, kfold",
         save_code=True,
         entity="sleep-staging",
-        name="multi-epoch, symmetric loss, diff rec neg",
+        name="multi-epoch-kfold, symmetric loss, same rec neg",
     )
-wb.save('multi-epoch/multi_epoch/*.py')
-wb.watch([q_encoder],log='all',log_freq=500)
+wb.save('multi-epoch/multi_epoch_kfold/*.py')
+wb.watch([q_encoder],log='all',log_freq=5000)
 
 Pretext(q_encoder, optimizer, n_epochs, criterion, pretext_loader, test_subjects, wb, device, SAVE_PATH, BATCH_SIZE)
 

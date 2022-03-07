@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-import mne
+import mne, os
 from mne.datasets.sleep_physionet.age import fetch_data
 
 from braindecode.datautil.preprocess import preprocess, Preprocessor
@@ -15,16 +15,17 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import Sampler
 from sklearn.utils import check_random_state
 
-PATH = '/mnt/sleepkfoldsame/'
-
+PATH = '/scratch/sleepkfoldsame/'
+DATA_PATH = '/scratch/'
+os.makedirs(PATH, exist_ok=True)
 
 # Params
 BATCH_SIZE = 1
 POS_MIN = 1
 NEG_MIN = 15
 EPOCH_LEN = 7
-NUM_SAMPLES = 2000
-SUBJECTS = np.arange(6)
+NUM_SAMPLES = 500
+SUBJECTS = np.arange(83)
 RECORDINGS = [1, 2]
 
 
@@ -60,7 +61,7 @@ class SleepPhysionet(BaseConcatDataset):
             subject_ids,
             recording=recording_ids,
             on_missing="warn",
-            path= PATH,
+            path= DATA_PATH,
         )
 
         all_base_ds = list()
@@ -174,7 +175,7 @@ PERSIST = False if NUM_WORKERS <= 1 else True
 
 
 subjects = np.unique(windows_dataset.description["subject"])
-sub_pretext = rng.choice(subjects, 2, replace=False)
+sub_pretext = rng.choice(subjects, 58, replace=False)
 sub_test = sorted(list(set(subjects) - set(sub_pretext)))
 
 
@@ -350,7 +351,6 @@ for sub in splitted["test"]:
 
 # Sampler
 tau_pos, tau_neg = int(sfreq * POS_MIN * 60), int(sfreq * NEG_MIN * 60)
-
 n_examples_pretext = NUM_SAMPLES * len(splitted["pretext"].datasets)
 
 print(f'Number of pretext subjects: {len(splitted["pretext"].datasets)}')

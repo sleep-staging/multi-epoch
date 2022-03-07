@@ -105,8 +105,6 @@ def kfold_evaluate(q_encoder, test_subjects, device, BATCH_SIZE):
 
     return np.mean(total_acc), np.mean(total_f1), np.mean(total_kappa), np.mean(total_bal_acc)
 
-
-
 class TuneDataset(Dataset):
     """Dataset for train and test"""
 
@@ -238,9 +236,8 @@ def Pretext(
         wandb.log({"Valid Kappa": test_kappa, "Epoch": epoch})
         wandb.log({"Valid Balanced Acc": bal_acc, "Epoch": epoch})
 
-        if epoch > 5:
-            if test_f1 > best_f1:
-                best_f1 = test_f1
-                torch.save(q_encoder.state_dict(), SAVE_PATH)
-                wandb.save(SAVE_PATH)
-                print("save best model on test set with best F1 score")
+        if epoch > 60 and test_f1 > best_f1:   
+            best_f1 = test_f1
+            torch.save(q_encoder.state_dict(), SAVE_PATH)
+            wandb.save(SAVE_PATH)
+            print("save best model on test set with best F1 score")
