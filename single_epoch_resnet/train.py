@@ -6,10 +6,13 @@ from sklearn.metrics import (
     balanced_accuracy_score
 )
 import torch
-from sklearn.linear_model import LogisticRegression as LR
+from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import KFold
 from tqdm import tqdm
 import numpy as np
+from utils import CosineAnnealingWarmupRestarts
+from torch.utils.data import DataLoader, Dataset
 
 
 
@@ -55,7 +58,7 @@ def task(X_train, X_test, y_train, y_test):
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
 
-    cls = LR(solver="saga", multi_class="multinomial", max_iter= 5000, n_jobs=-1, dual = False)
+    cls = LogisticRegression(penalty='l2', C=1.0, solver="saga", class_weight='balanced', multi_class="multinomial", max_iter= 2000, n_jobs=-1, dual = False, random_state=1234)
     cls.fit(X_train, y_train)
     pred = cls.predict(X_test)
 
@@ -67,6 +70,68 @@ def task(X_train, X_test, y_train, y_test):
 
     return acc, cm, f1, kappa, bal_acc, y_test, pred
 
+def kfold_evaluate(q_encoder, test_subjects, device, BATCH_SIZE):
+
+    kfold = KFold(n_splits=5, shuffle=True, random_state=1234)
+
+    total_acc, total_f1, total_kappa, total_bal_acc = [], [], [], []
+    i = 1
+
+    for train_idx, test_idx in kfold.split(test_subjects):
+
+        test_subjects_train = [test_subjects[i] for i in train_idx]
+        test_subjects_test = [test_subjects[i] for i in test_idx]
+        test_subjects_train = [rec for sub in test_subjects_train for rec in sub]
+        test_subjects_test = [rec for sub in test_subjects_test for rec in sub]
+
+        train_loader = DataLoader(TuneDataset(test_subjects_train), batch_size=BATCH_SIZE, shuffle=True, num_workers=4, persistent_workers=True)
+        test_loader = DataLoader(TuneDataset(test_subjects_test), batch_size=BATCH_SIZE, shuffle= False, num_workers=4, persistent_workers=True)
+        test_acc, _, test_f1, test_kappa, bal_acc, gt, pd = evaluate(q_encoder, train_loader, test_loader, device)
+
+        total_acc.append(test_acc)
+        total_f1.append(test_f1)
+        total_kappa.append(test_kappa)
+        total_bal_acc.append(bal_acc)
+        
+        print("+"*50)
+        print(f"Fold{i} acc: {test_acc}")
+        print(f"Fold{i} f1: {test_f1}")
+        print(f"Fold{i} kappa: {test_kappa}")
+        print(f"Fold{i} bal_acc: {bal_acc}")
+        print("+"*50)
+        i+=1 
+
+    return np.mean(total_acc), np.mean(total_f1), np.mean(total_kappa), np.mean(total_bal_acc)
+
+class TuneDataset(Dataset):
+    """Dataset for train and test"""
+
+    def __init__(self, subjects):
+        self.subjects = subjects
+        self._add_subjects()
+
+    def __getitem__(self, index):
+
+        X = self.X[index]
+        y =  self.y[index]
+        return X, y
+
+    def __len__(self):
+        return self.X.shape[0]
+        
+    def _add_subjects(self):
+        self.X = []
+        self.y = []
+        for subject in self.subjects:
+            self.X.append(subject['windows'])
+            self.y.append(subject['y'])
+        self.X = np.concatenate(self.X, axis=0)
+        self.y = np.concatenate(self.y, axis=0)
+
+
+
+##################################################################################################################################################
+
 
 # Pretrain
 def Pretext(
@@ -75,11 +140,11 @@ def Pretext(
     Epoch,
     criterion,
     pretext_loader,
-    train_loader,
-    test_loader,
+    test_subjects,
     wandb,
     device, 
-    SAVE_PATH
+    SAVE_PATH,
+    BATCH_SIZE
 ):
 
     q_encoder.train()  # for dropout
@@ -141,43 +206,20 @@ def Pretext(
                 wandb.log({"ssl_lr": lr, "Epoch": epoch})
             step += 1
 
-
-        test_acc, _, test_f1, test_kappa, bal_acc, gt, pd = evaluate(
-            q_encoder, train_loader, test_loader, device
-        )
-
-        acc_score.append(test_acc)
-
         wandb.log({"ssl_loss": np.mean(pretext_loss), "Epoch": epoch})
 
-        wandb.log({"Valid Acc": test_acc, "Epoch": epoch})
-        wandb.log({"Valid F1": test_f1, "Epoch": epoch})
-        wandb.log({"Valid Kappa": test_kappa, "Epoch": epoch})
-        wandb.log({"Valid Balanced Acc": bal_acc, "Epoch": epoch})
+        if epoch >= 60 and (epoch) % 5 == 0:
 
-        # if epoch >= 30 and (epoch + 1) % 10 == 0:
-        #     print("Logging confusion matrix ...")
-        #     wandb.log(
-        #         {
-        #             f"conf_mat_{epoch}": wandb.plot.confusion_matrix(
-        #                 probs=None, 
-        #                 y_true=gt,
-        #                 preds=pd,
-        #                 class_names=["Wake", "N1", "N2", "N3", "REM"],
-        #             )
-        #         }
-        #     )
-        
-
-        if epoch > 5:
-            print(
-                "recent five epoch, mean: {}, std: {}".format(
-                    np.mean(acc_score[-5:]), np.std(acc_score[-5:])
-                )
+            test_acc, test_f1, test_kappa, bal_acc = kfold_evaluate(
+                q_encoder, test_subjects, device, BATCH_SIZE
             )
-            wandb.log({"accuracy std": np.std(acc_score[-5:]), "Epoch": epoch})
 
-            if test_f1 > best_f1:
+            wandb.log({"Valid Acc": test_acc, "Epoch": epoch})
+            wandb.log({"Valid F1": test_f1, "Epoch": epoch})
+            wandb.log({"Valid Kappa": test_kappa, "Epoch": epoch})
+            wandb.log({"Valid Balanced Acc": bal_acc, "Epoch": epoch})
+
+            if test_f1 > best_f1:   
                 best_f1 = test_f1
                 torch.save(q_encoder.state_dict(), SAVE_PATH)
                 wandb.save(SAVE_PATH)

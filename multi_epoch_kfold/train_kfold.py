@@ -229,14 +229,14 @@ def Pretext(
             # scheduler.step()
             # lr = optimizer.param_groups[0]["lr"]
             # wandb.log({"ssl_lr": lr, "Epoch": epoch})
+            
+        wandb.log({"ssl_loss": np.mean(pretext_loss), "Epoch": epoch})
 
         if epoch >= 60 and (epoch) % 5 == 0:
 
             test_acc, test_f1, test_kappa, bal_acc = kfold_evaluate(
                 q_encoder, test_subjects, device, BATCH_SIZE
             )
-
-            wandb.log({"ssl_loss": np.mean(pretext_loss), "Epoch": epoch})
 
             wandb.log({"Valid Acc": test_acc, "Epoch": epoch})
             wandb.log({"Valid F1": test_f1, "Epoch": epoch})

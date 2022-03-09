@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-import mne
+import mne, os
 from mne.datasets.sleep_physionet.age import fetch_data
 
 from braindecode.datautil.preprocess import preprocess, Preprocessor
@@ -15,15 +15,16 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import Sampler
 from sklearn.utils import check_random_state
 
-PATH = '/mnt/sleep1/'
-
+PATH = '/scratch/sleepkfoldsame/'
+DATA_PATH = '/scratch/'
+os.makedirs(PATH, exist_ok=True)
 
 # Params
 BATCH_SIZE = 1
 POS_MIN = 1
 NEG_MIN = 15
 EPOCH_LEN = 7
-NUM_SAMPLES = 2000
+NUM_SAMPLES = 500
 SUBJECTS = np.arange(83)
 RECORDINGS = [1, 2]
 
@@ -60,7 +61,7 @@ class SleepPhysionet(BaseConcatDataset):
             subject_ids,
             recording=recording_ids,
             on_missing="warn",
-            path= PATH,
+            path= DATA_PATH,
         )
 
         all_base_ds = list()
@@ -175,15 +176,11 @@ PERSIST = False if NUM_WORKERS <= 1 else True
 
 subjects = np.unique(windows_dataset.description["subject"])
 sub_pretext = rng.choice(subjects, 58, replace=False)
-sub_train = sorted(
-    rng.choice(sorted(list(set(subjects) - set(sub_pretext))), 10, replace=False)
-)
-sub_test = sorted(list(set(subjects) - set(sub_pretext) - set(sub_train)))
+sub_test = sorted(list(set(subjects) - set(sub_pretext)))
 
 
 print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 print(f"Pretext: {sub_pretext} \n")
-print(f"Train: {sub_train} \n")
 print(f"Test: {sub_test} \n")
 print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
@@ -329,11 +326,9 @@ class RelativePositioningSampler(RecordingSampler):
 
 
 PRETEXT_PATH = os.path.join(PATH, "pretext")
-TRAIN_PATH = os.path.join(PATH, "train")
 TEST_PATH = os.path.join(PATH, "test")
 
 if not os.path.exists(PRETEXT_PATH): os.mkdir(PRETEXT_PATH)
-if not os.path.exists(TRAIN_PATH): os.mkdir(TRAIN_PATH)
 if not os.path.exists(TEST_PATH): os.mkdir(TEST_PATH)
 
 
@@ -344,19 +339,18 @@ splitted["pretext"] = RelativePositioningDataset(
     epoch_len = EPOCH_LEN
 )
 
-splitted["train"] = TuneDataset(
-    [ds for ds in windows_dataset.datasets if ds.description["subject"] in sub_train]
-)
 
-splitted["test"] = TuneDataset(
-    [ds for ds in windows_dataset.datasets if ds.description["subject"] in sub_test]
-)
+splitted["test"] = [ds for ds in windows_dataset.datasets if ds.description["subject"] in sub_test]
 
+for sub in splitted["test"]:
+    temp_path = os.path.join(TEST_PATH, str(sub.description["subject"]) + str(sub.description["recording"])+'.npz')
+    np.savez(temp_path, **sub.__dict__)
+
+########################################################################################################################
 
 
 # Sampler
 tau_pos, tau_neg = int(sfreq * POS_MIN * 60), int(sfreq * NEG_MIN * 60)
-
 n_examples_pretext = NUM_SAMPLES * len(splitted["pretext"].datasets)
 
 print(f'Number of pretext subjects: {len(splitted["pretext"].datasets)}')
@@ -379,23 +373,9 @@ pretext_loader = DataLoader(
     sampler=pretext_sampler
 )
 
-train_loader = DataLoader(
-    splitted["train"], batch_size=BATCH_SIZE, shuffle= False
-)
-
-test_loader = DataLoader(
-    splitted["test"], batch_size=BATCH_SIZE, shuffle=False
-    )
 
 for i, arr in tqdm(enumerate(pretext_loader), desc = 'pretext'):
     temp_path = os.path.join(PRETEXT_PATH, str(i) + '.npz')
     np.savez(temp_path, pos = arr[0].numpy().squeeze(0), neg = arr[1].numpy().squeeze(0))
   
-for i, arr in tqdm(enumerate(train_loader), desc = 'train'):
-    temp_path = os.path.join(TRAIN_PATH, str(i) + '.npz')
-    np.savez(temp_path, x = arr[0].numpy().squeeze(0), y = arr[1].numpy().squeeze(0))
-    
-for i, arr in tqdm(enumerate(test_loader), desc = 'test'):
-    temp_path = os.path.join(TEST_PATH, str(i) + '.npz')
-    np.savez(temp_path, x = arr[0].numpy().squeeze(0), y = arr[1].numpy().squeeze(0))
-    
+
