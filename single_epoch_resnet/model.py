@@ -1,51 +1,57 @@
-from braindecode.models import SleepStagerChambon2018
 from torch import nn
+from resnet1d import BaseNet
+import torch
 
-def sleep_model(n_channels, input_size_samples, n_dim=128):
-    
-    emb_size = 128
-    sfreq = 100
-
-
-    encoder = SleepStagerChambon2018(
-        n_channels,
-        sfreq,
-        n_classes=emb_size,
-        n_conv_chs=16,
-        input_size_s=input_size_samples / sfreq,
-        dropout=0,
-        apply_batch_norm=True,
-    )
-
+def sleep_model(n_channels, input_size_samples, n_dim = 256):
+    class attention(nn.Module):
+        
+        def __init__(self, n_dim):
+            super(attention,self).__init__()
+            self.att_dim = n_dim
+            self.W = nn.Parameter(torch.randn(n_dim, self.att_dim))
+            self.V = nn.Parameter(torch.randn(self.att_dim, 1))
+            self.scale = self.att_dim**-0.5
+            
+        def forward(self,x):
+            x = x.permute(0, 2, 1)
+            e = torch.matmul(x, self.W)
+            e = torch.matmul(torch.tanh(e), self.V)
+            e = e*self.scale
+            n1 = torch.exp(e)
+            n2 = torch.sum(torch.exp(e), 1, keepdim=True)
+            alpha = torch.div(n1, n2)
+            x = torch.sum(torch.mul(alpha, x), 1)
+            return x
     class Net(nn.Module):
         
-        def __init__(self, encoder, dim):
+        def __init__(self, encoder, n_dim):
             super().__init__()
             self.enc = encoder
-            self.n_dim = dim
-
-            self.p1 = nn.Sequential(
-                nn.Linear(128, self.n_dim, bias=True),
-                nn.ReLU(),
-                nn.Linear(self.n_dim, self.n_dim, bias=True),
-            )
-
-            self.p2 = nn.Sequential(
-                nn.Linear(128, self.n_dim, bias=True),
-                nn.ReLU(),
-                nn.Linear(self.n_dim, self.n_dim, bias=True),
-            )
-
-        def forward(self, x, proj_first=True):
+            self.attn = attention(n_dim)
+            self.n_dim = n_dim
             
+            self.p1 = nn.Sequential(
+                nn.Linear(self.n_dim, self.n_dim // 2, bias=True),
+                nn.BatchNorm1d(self.n_dim // 2),
+                nn.ReLU(inplace=True),
+                nn.Linear(self.n_dim // 2, self.n_dim // 2, bias=True),
+            )
+            self.p2 = nn.Sequential(
+                nn.Linear(self.n_dim, self.n_dim // 2, bias=True),
+                nn.BatchNorm1d(self.n_dim // 2),
+                nn.ReLU(inplace=True),
+                nn.Linear(self.n_dim // 2, self.n_dim // 2, bias=True),
+            )
+            
+        def forward(self, x, proj_first=True):
             x = self.enc(x)
+            x = self.attn(x)
             
             if proj_first:
                 x = self.p1(x)
                 return x
             else:
                 x = self.p2(x)
-                
                 return x
             
-    return Net(encoder, n_dim)
+    return Net(BaseNet(input_channel = n_channels), n_dim)

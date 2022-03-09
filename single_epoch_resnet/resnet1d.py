@@ -51,7 +51,7 @@ class BasicBlock_Bottle(nn.Module):
 
 #Main 1D-RESNET Model
 class BaseNet(nn.Module):
-    def __init__(self, input_channel=2, layers=[3, 4, 6, 3], classes =4):
+    def __init__(self, input_channel=2, layers=[3, 4, 6, 3]):
         self.inplanes3 = 16
 
         super(BaseNet, self).__init__()
