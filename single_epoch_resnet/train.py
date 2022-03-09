@@ -179,12 +179,12 @@ def Pretext(
                 neg.to(device),
             )  # (B, 7, 2, 3000)  (B, 7, 2, 3000) (B, 7, 2, 3000)
         
-            anc1_features = q_encoder(aug1, proj_first=True) #(B, 128)
-            anc2_features = q_encoder(aug2, proj_first=True) #(B, 128)
+            anc1_features = q_encoder(aug1, proj_first='yes') #(B, 128)
+            anc2_features = q_encoder(aug2, proj_first='yes') #(B, 128)
  
-            pos1_features = q_encoder(aug2, proj_first=False)  # (B, 128)
-            pos2_features = q_encoder(aug1, proj_first=False)  # (B, 128)
-            neg_features = q_encoder(neg, proj_first=False)  # (B, 128)
+            pos1_features = q_encoder(aug2, proj_first='no')  # (B, 128)
+            pos2_features = q_encoder(aug1, proj_first='no')  # (B, 128)
+            neg_features = q_encoder(neg, proj_first='no')  # (B, 128)
            
             # backprop
             loss1 = criterion(anc1_features, pos1_features, neg_features)
@@ -221,6 +221,6 @@ def Pretext(
 
             if test_f1 > best_f1:   
                 best_f1 = test_f1
-                torch.save(q_encoder.state_dict(), SAVE_PATH)
+                torch.save(q_encoder.enc.state_dict(), SAVE_PATH)
                 wandb.save(SAVE_PATH)
                 print("save best model on test set with best F1 score")

@@ -22,12 +22,23 @@ def sleep_model(n_channels, input_size_samples, n_dim = 256):
             alpha = torch.div(n1, n2)
             x = torch.sum(torch.mul(alpha, x), 1)
             return x
+        
+    class encoder(nn.Module):
+
+        def __init__(self, n_channels, n_dim):
+            super(encoder,self).__init__()
+            self.model = BaseNet(input_channel = n_channels)
+            self.attention = attention(n_dim)
+            
+        def forward(self, x): 
+            x = self.model(x)
+            x = self.attention(x)
+            return x
     class Net(nn.Module):
         
-        def __init__(self, encoder, n_dim):
+        def __init__(self, n_channels, n_dim):
             super().__init__()
-            self.enc = encoder
-            self.attn = attention(n_dim)
+            self.enc = encoder(n_channels, n_dim)
             self.n_dim = n_dim
             
             self.p1 = nn.Sequential(
@@ -43,15 +54,16 @@ def sleep_model(n_channels, input_size_samples, n_dim = 256):
                 nn.Linear(self.n_dim // 2, self.n_dim // 2, bias=True),
             )
             
-        def forward(self, x, proj_first=True):
+        def forward(self, x, proj_first='yes'):
             x = self.enc(x)
-            x = self.attn(x)
             
-            if proj_first:
+            if proj_first == 'yes':
                 x = self.p1(x)
                 return x
-            else:
+            elif proj_first == 'no':
                 x = self.p2(x)
                 return x
+            else:
+                return x
             
-    return Net(BaseNet(input_channel = n_channels), n_dim)
+    return Net(n_channels, n_dim)
