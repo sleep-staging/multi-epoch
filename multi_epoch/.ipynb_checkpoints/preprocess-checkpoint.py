@@ -16,7 +16,8 @@ from torch.utils.data.sampler import Sampler
 from sklearn.utils import check_random_state
 
 PATH = '/scratch/sleep500same/'
-
+DATA_PATH = '/scratch/'
+os.makedirs(PATH, exist_ok=True)
 
 # Params
 BATCH_SIZE = 1
@@ -60,7 +61,7 @@ class SleepPhysionet(BaseConcatDataset):
             subject_ids,
             recording=recording_ids,
             on_missing="warn",
-            path= PATH,
+            path= DATA_PATH,
         )
 
         all_base_ds = list()
@@ -303,7 +304,8 @@ class RelativePositioningSampler(RecordingSampler):
 
         epoch_min = self.info.iloc[rec_ind1]["i_start_in_trial"][self.epoch_len // 2]
         epoch_max = self.info.iloc[rec_ind1]["i_start_in_trial"][-self.epoch_len // 2]
-
+        
+        rng = np.random.Random
         if self.same_rec_neg:
             mask = ((ts <= ts1 - self.tau_neg) & (ts >= epoch_min)) | (
                 (ts >= ts1 + self.tau_neg) & (ts <= epoch_max)

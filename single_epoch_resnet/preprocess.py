@@ -15,18 +15,16 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import Sampler
 from sklearn.utils import check_random_state
 
-PATH = '/scratch/sleep500same/'
-#DATA_PATH = '/scratch/'
-os.makedirs(PATH, exist_ok=True)
+PATH = '/mnt/sleep1/'
+
 
 # Params
 BATCH_SIZE = 1
 POS_MIN = 1
 NEG_MIN = 15
 EPOCH_LEN = 7
-NUM_SAMPLES = 500
-#SUBJECTS = np.arange(83)
-SUBJECTS = np.arange(3)
+NUM_SAMPLES = 2000
+SUBJECTS = np.arange(83)
 RECORDINGS = [1, 2]
 
 
@@ -54,8 +52,7 @@ class SleepPhysionet(BaseConcatDataset):
         crop=None,
     ):
         if subject_ids is None:
-            #subject_ids = range(83)
-            subject_ids = range(3)
+            subject_ids = range(83)
         if recording_ids is None:
             recording_ids = [1, 2]
 
@@ -163,7 +160,7 @@ windows_dataset = create_windows_from_events(
     mapping=mapping,
 )
 
-breakpoint()
+
 preprocess(windows_dataset, [Preprocessor(zscore)])
 
 
@@ -306,8 +303,7 @@ class RelativePositioningSampler(RecordingSampler):
 
         epoch_min = self.info.iloc[rec_ind1]["i_start_in_trial"][self.epoch_len // 2]
         epoch_max = self.info.iloc[rec_ind1]["i_start_in_trial"][-self.epoch_len // 2]
-        
-        rng = np.random.Random
+
         if self.same_rec_neg:
             mask = ((ts <= ts1 - self.tau_neg) & (ts >= epoch_min)) | (
                 (ts >= ts1 + self.tau_neg) & (ts <= epoch_max)
@@ -391,15 +387,15 @@ test_loader = DataLoader(
     splitted["test"], batch_size=BATCH_SIZE, shuffle=False
     )
 
-#for i, arr in tqdm(enumerate(pretext_loader), desc = 'pretext'):
-#    temp_path = os.path.join(PRETEXT_PATH, str(i) + '.npz')
-#    np.savez(temp_path, pos = arr[0].numpy().squeeze(0), neg = arr[1].numpy().squeeze(0))
-#  
-#for i, arr in tqdm(enumerate(train_loader), desc = 'train'):
-#    temp_path = os.path.join(TRAIN_PATH, str(i) + '.npz')
-#    np.savez(temp_path, x = arr[0].numpy().squeeze(0), y = arr[1].numpy().squeeze(0))
-#    
-#for i, arr in tqdm(enumerate(test_loader), desc = 'test'):
-#    temp_path = os.path.join(TEST_PATH, str(i) + '.npz')
-#    np.savez(temp_path, x = arr[0].numpy().squeeze(0), y = arr[1].numpy().squeeze(0))
-#    
+for i, arr in tqdm(enumerate(pretext_loader), desc = 'pretext'):
+    temp_path = os.path.join(PRETEXT_PATH, str(i) + '.npz')
+    np.savez(temp_path, pos = arr[0].numpy().squeeze(0), neg = arr[1].numpy().squeeze(0))
+  
+for i, arr in tqdm(enumerate(train_loader), desc = 'train'):
+    temp_path = os.path.join(TRAIN_PATH, str(i) + '.npz')
+    np.savez(temp_path, x = arr[0].numpy().squeeze(0), y = arr[1].numpy().squeeze(0))
+    
+for i, arr in tqdm(enumerate(test_loader), desc = 'test'):
+    temp_path = os.path.join(TEST_PATH, str(i) + '.npz')
+    np.savez(temp_path, x = arr[0].numpy().squeeze(0), y = arr[1].numpy().squeeze(0))
+    

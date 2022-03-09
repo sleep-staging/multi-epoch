@@ -14,10 +14,10 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/scratch/sleep500mixed/'
+PATH = '/mnt/sleep500same/'
 
 # Params
-SAVE_PATH = "multi-epoch-avg.pth"
+SAVE_PATH = "single-epoch-same.pth"
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 128
 lr = 5e-4
@@ -39,7 +39,7 @@ if device == "cuda":
     torch.backends.cudnn.deterministic = True 
     torch.backends.cudnn.benchmark = False
     print(f"GPU available: {torch.cuda.device_count()}")
-    
+
 set_random_seeds(seed=random_state, cuda=device == "cuda")
 
 
@@ -73,14 +73,16 @@ class pretext_data(Dataset):
         
         path = self.file_path[index]
         data = np.load(path)
-        pos = data['pos']
-        neg = data['neg']
+        pos = data['pos'] #(7, 2, 3000)
+        pos_len = len(pos) # 7
+        pos = pos[pos_len // 2] # (2, 3000)
+        neg = data['neg'][pos_len // 2] # (2, 3000)
         anc = copy.deepcopy(pos)
         
-        for i in range(pos.shape[0]):
-            pos[i] = augment(pos[i])
-            anc[i] = augment(anc[i])
-            neg[i] = augment(neg[i])
+        # augment
+        pos = augment(pos)
+        anc = augment(anc)
+        neg = augment(neg)
        
         return anc, pos, neg
     
@@ -128,12 +130,12 @@ test_loader = DataLoader(train_data(TEST_FILE), batch_size=BATCH_SIZE, shuffle=F
 
 wb = wandb.init(
         project="WTM-500",
-        notes="triplet loss, symmetric loss, 7 epoch length, avg of features instead of weights, 500 samples, lr=5e-4, using logistic regression with lbfgs solver",
+        notes="single-epoch, triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with lbfgs solver, with lr=5e-4",
         save_code=True,
         entity="sleep-staging",
-        name="multi-epoch-avg, symmetric loss, mixed, lbfgs",
+        name="single-epoch, symmetric loss, same rec neg, lbfgs",
     )
-wb.save('multi-epoch/multi_epoch_avg/*.py')
+wb.save('multi-epoch/single_epoch/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
 
 Pretext(
