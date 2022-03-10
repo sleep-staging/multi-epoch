@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/scratch/sleepkfoldsame/'
+PATH = '/mnt/scratch/sleepkfoldsame/'
 
 # Params
 SAVE_PATH = "single-epoch-same.pth"
@@ -55,9 +55,10 @@ model = sleep_model(n_channels, input_size_samples, n_dim = N_DIM)
 q_encoder = model.to(device)
 k_encoder = model.to(device)
 
-for param_q, param_k in zip(q_encoder.parameters(), k_encoder.parameters()):
-    param_k.data.copy_(param_q.data) 
-    param_k.requires_grad = False  # not update by gradient
+for child_q, child_k in zip(q_encoder.children(), k_encoder.children()):
+    for param_q, param_k in zip(child_q.parameters(), child_k.parameters()):    
+        param_k.data.copy_(param_q.data) 
+        param_k.requires_grad = False  # not update by gradient
 
 optimizer = torch.optim.Adam(q_encoder.parameters(), lr=lr, weight_decay=WEIGHT_DECAY)
 criterion = loss_fn(device).to(device)
@@ -146,7 +147,7 @@ wb = wandb.init(
         name="single-epoch-momentum-resnet, symmetric loss, same rec neg, saga",
     )
 wb.save('multi-epoch/single_epoch_momentum/*.py')
-wb.watch([q_encoder],log='all',log_freq=500)
+wb.watch([q_encoder, k_encoder],log='all',log_freq=500)
 
 Pretext(q_encoder, k_encoder, m, optimizer, n_epochs, criterion, pretext_loader, test_subjects, wb, device, SAVE_PATH, BATCH_SIZE)
 
