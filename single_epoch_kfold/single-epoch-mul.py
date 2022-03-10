@@ -1,4 +1,4 @@
-from augmentations import *
+from augmentations_mul import *
 from loss import loss_fn
 from model import sleep_model
 from train import *
@@ -23,9 +23,8 @@ BATCH_SIZE = 128
 lr = 5e-4
 n_epochs = 200
 NUM_WORKERS = 5
-N_DIM = 256
+N_DIM = 128
 EPOCH_LEN = 7
-m = 0.9995
 
 ####################################################################################################
 
@@ -49,17 +48,10 @@ set_random_seeds(seed=random_state, cuda=device == "cuda")
 
 # Extract number of channels and time steps from dataset
 n_channels, input_size_samples = (2, 3000)
-model_q = sleep_model(n_channels, input_size_samples, n_dim = N_DIM)
-model_k = sleep_model(n_channels, input_size_samples, n_dim = N_DIM)
+model = sleep_model(n_channels, input_size_samples, n_dim = N_DIM)
 
 
-q_encoder = model_q.to(device)
-k_encoder = model_k.to(device)
-
-for child_q, child_k in zip(q_encoder.children(), k_encoder.children()):
-    for param_q, param_k in zip(child_q.parameters(), child_k.parameters()):    
-        param_k.data.copy_(param_q.data) 
-        param_k.requires_grad = False  # not update by gradient
+q_encoder = model.to(device)
 
 optimizer = torch.optim.Adam(q_encoder.parameters(), lr=lr, weight_decay=WEIGHT_DECAY)
 criterion = loss_fn(device).to(device)
@@ -86,12 +78,11 @@ class pretext_data(Dataset):
         pos = pos[pos_len // 2] # (2, 3000)
         neg = data['neg'][pos_len // 2] # (2, 3000)
         anc = copy.deepcopy(pos)
-        
-        # augment
-        pos = augment(pos)
-        anc = augment(anc)
-        neg = augment(neg)
-       
+
+        # augment   
+        anc, pos = augment(torch.Tensor(pos))
+        neg, _ = augment(torch.Tensor(neg))
+
         return anc, pos, neg
     
 class train_data(Dataset):
@@ -139,17 +130,19 @@ test_subjects = list(test_subjects.values())
 
 
 ##############################################################################################################################
-    
+
+
 wb = wandb.init(
         project="WTM-exp-500",
-        notes="single-epoch, triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with lbfgs solver, with lr=5e-4",
+        notes="single-epoch, triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with saga solver, with lr=5e-4,\
+            banville model, simclr, mulEEG augs",
         save_code=True,
         entity="sleep-staging",
-        name="single-epoch-momentum-resnet, symmetric loss, same rec neg, saga",
+        name="single-epoch-mul, symmetric loss, same rec neg, saga",
     )
-wb.save('multi-epoch/single_epoch_momentum/*.py')
-wb.watch([q_encoder, k_encoder],log='all',log_freq=500)
+wb.save('multi-epoch/single_epoch_kfold/*.py')
+wb.watch([q_encoder],log='all',log_freq=500)
 
-Pretext(q_encoder, k_encoder, m, optimizer, n_epochs, criterion, pretext_loader, test_subjects, wb, device, SAVE_PATH, BATCH_SIZE)
+Pretext(q_encoder, optimizer, n_epochs, criterion, pretext_loader, test_subjects, wb, device, SAVE_PATH, BATCH_SIZE)
 
 wb.finish()
