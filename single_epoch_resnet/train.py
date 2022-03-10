@@ -11,7 +11,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import KFold
 from tqdm import tqdm
 import numpy as np
-from utils import CosineAnnealingWarmupRestarts
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -58,7 +57,7 @@ def task(X_train, X_test, y_train, y_test):
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
 
-    cls = LogisticRegression(penalty='l2', C=1.0, solver="saga", class_weight='balanced', multi_class="multinomial", max_iter= 2000, n_jobs=-1, dual = False, random_state=1234)
+    cls = LogisticRegression(penalty='l2', C=1.0, solver="saga", class_weight='balanced', multi_class="multinomial", max_iter= 3000, n_jobs=-1, dual = False, random_state=1234)
     cls.fit(X_train, y_train)
     pred = cls.predict(X_test)
 
