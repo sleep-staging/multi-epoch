@@ -14,10 +14,10 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/scratch/sleepkfoldsame/'
+PATH = '/mnt/scratch/sleepkfoldsamenofreq/'
 
 # Params
-SAVE_PATH = "single-epoch-same.pth"
+SAVE_PATH = "single-epoch-same-no-freq.pth"
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 128
 lr = 5e-4
@@ -137,9 +137,9 @@ wb = wandb.init(
         notes="single-epoch, triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with lbfgs solver, with lr=5e-4",
         save_code=True,
         entity="sleep-staging",
-        name="single-epoch-resnet, symmetric loss, same rec neg, saga",
+        name="single-epoch-resnet-no-freq, symmetric loss, same rec neg, saga",
     )
-wb.save('multi-epoch/single_epoch_resnet/*.py')
+wb.save('multi-epoch/single_epoch_resnet_no_freq/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
 
 Pretext(q_encoder, optimizer, n_epochs, criterion, pretext_loader, test_subjects, wb, device, SAVE_PATH, BATCH_SIZE)

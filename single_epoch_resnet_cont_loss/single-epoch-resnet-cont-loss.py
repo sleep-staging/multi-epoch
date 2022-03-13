@@ -14,10 +14,10 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/scratch/sleepkfoldsame/'
+PATH = '/mnt/scratch/sleepkfoldsame/'
 
 # Params
-SAVE_PATH = "single-epoch-same.pth"
+SAVE_PATH = "single-epoch-resnet-cont-loss.pth"
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 128
 lr = 5e-4
@@ -25,6 +25,7 @@ n_epochs = 200
 NUM_WORKERS = 5
 N_DIM = 256
 EPOCH_LEN = 7
+TEMPERATURE = 1
 
 ####################################################################################################
 
@@ -53,7 +54,7 @@ model = sleep_model(n_channels, input_size_samples, n_dim = N_DIM)
 q_encoder = model.to(device)
 
 optimizer = torch.optim.Adam(q_encoder.parameters(), lr=lr, weight_decay=WEIGHT_DECAY)
-criterion = loss_fn(device).to(device)
+criterion = loss_fn(device,T=TEMPERATURE).to(device)
 
 #####################################################################################################
 

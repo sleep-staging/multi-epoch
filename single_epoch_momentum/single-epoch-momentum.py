@@ -20,7 +20,7 @@ PATH = '/mnt/scratch/sleepkfoldsame/'
 SAVE_PATH = "single-epoch-same.pth"
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 128
-lr = 5e-4
+lr = 5e-2
 n_epochs = 200
 NUM_WORKERS = 5
 N_DIM = 256
@@ -56,10 +56,9 @@ model_k = sleep_model(n_channels, input_size_samples, n_dim = N_DIM)
 q_encoder = model_q.to(device)
 k_encoder = model_k.to(device)
 
-for child_q, child_k in zip(q_encoder.children(), k_encoder.children()):
-    for param_q, param_k in zip(child_q.parameters(), child_k.parameters()):    
-        param_k.data.copy_(param_q.data) 
-        param_k.requires_grad = False  # not update by gradient
+for param_q, param_k in zip(q_encoder.parameters(), k_encoder.parameters()):
+    param_k.data.copy_(param_q.data) 
+    param_k.requires_grad = False  # not update by gradient
 
 optimizer = torch.optim.Adam(q_encoder.parameters(), lr=lr, weight_decay=WEIGHT_DECAY)
 criterion = loss_fn(device).to(device)
@@ -145,7 +144,7 @@ wb = wandb.init(
         notes="single-epoch, triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with lbfgs solver, with lr=5e-4",
         save_code=True,
         entity="sleep-staging",
-        name="single-epoch-momentum-resnet, symmetric loss, same rec neg, saga",
+        name="single-epoch-momentum-resnet, large lr, same rec neg, saga",
     )
 wb.save('multi-epoch/single_epoch_momentum/*.py')
 wb.watch([q_encoder, k_encoder],log='all',log_freq=500)
