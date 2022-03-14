@@ -137,7 +137,7 @@ wb = wandb.init(
         notes="single-epoch, symmetric loss, 1000 samples, using same projection heads and no batch norm, original simclr",
         save_code=True,
         entity="sleep-staging",
-        name="single-epoch-resnet, symmetric loss, same rec neg, saga",
+        name="simclr, same_pos_anc",
     )
 wb.save('multi-epoch/single_epoch_resnet_cont/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)

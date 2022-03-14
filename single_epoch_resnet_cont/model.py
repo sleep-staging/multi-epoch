@@ -34,6 +34,7 @@ def sleep_model(n_channels, input_size_samples, n_dim = 256):
             x = self.model(x)
             x = self.attention(x)
             return x
+        
     class Net(nn.Module):
         
         def __init__(self, n_channels, n_dim):
