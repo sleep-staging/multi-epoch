@@ -1,4 +1,4 @@
-from augmentations import *
+from augmentations_mul import *
 from loss import loss_fn
 from model import sleep_model
 from train import *
@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/scratch/sleepkfoldsame/'
+PATH = '/mnt/scratch/sleepkfoldsame/'
 
 # Params
 SAVE_PATH = "single-epoch-same.pth"
@@ -23,13 +23,14 @@ BATCH_SIZE = 128
 lr = 5e-4
 n_epochs = 200
 NUM_WORKERS = 5
-N_DIM = 256
+N_DIM = 128
 EPOCH_LEN = 7
 
 ####################################################################################################
 
 random_state = 1234
 sfreq = 100
+high_cut_hz = 30
 
 # Seeds
 rng = np.random.RandomState(random_state)
@@ -77,12 +78,11 @@ class pretext_data(Dataset):
         pos = pos[pos_len // 2] # (2, 3000)
         neg = data['neg'][pos_len // 2] # (2, 3000)
         anc = copy.deepcopy(pos)
-        
-        # augment
-        pos = augment(pos)
-        anc = augment(anc)
-        neg = augment(neg)
-       
+
+        # augment   
+        anc, pos = augment(torch.Tensor(pos))
+        neg, _ = augment(torch.Tensor(neg))
+
         return anc, pos, neg
     
 class train_data(Dataset):
@@ -134,12 +134,13 @@ test_subjects = list(test_subjects.values())
 
 wb = wandb.init(
         project="WTM-exp-500",
-        notes="single-epoch, triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with lbfgs solver, with lr=5e-4",
+        notes="single-epoch, triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with saga solver, with lr=5e-4,\
+            banville model, simclr, mulEEG augs",
         save_code=True,
         entity="sleep-staging",
-        name="single-epoch-resnet, symmetric loss, same rec neg, saga",
+        name="single-epoch-mul, symmetric loss, same rec neg, saga",
     )
-wb.save('multi-epoch/single_epoch_resnet/*.py')
+wb.save('multi-epoch/single_epoch_kfold/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
 
 Pretext(q_encoder, optimizer, n_epochs, criterion, pretext_loader, test_subjects, wb, device, SAVE_PATH, BATCH_SIZE)

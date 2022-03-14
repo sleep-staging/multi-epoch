@@ -15,8 +15,8 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import Sampler
 from sklearn.utils import check_random_state
 
-PATH = '/mnt/scratch/sleepkfoldsame/'
-DATA_PATH = '/mnt/scratch/'
+PATH = '/scratch/sleepkfoldsame/'
+DATA_PATH = '/scratch/'
 os.makedirs(PATH, exist_ok=True)
 
 # Params

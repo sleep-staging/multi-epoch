@@ -14,13 +14,13 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/scratch/sleepkfoldsame/'
+PATH = '/mnt/scratch/sleepkfoldsame/'
 
 # Params
 SAVE_PATH = "single-epoch-same.pth"
 WEIGHT_DECAY = 1e-4
 BATCH_SIZE = 128
-lr = 5e-4
+lr = 5e-2
 n_epochs = 200
 NUM_WORKERS = 5
 N_DIM = 256
@@ -49,11 +49,12 @@ set_random_seeds(seed=random_state, cuda=device == "cuda")
 
 # Extract number of channels and time steps from dataset
 n_channels, input_size_samples = (2, 3000)
-model = sleep_model(n_channels, input_size_samples, n_dim = N_DIM)
+model_q = sleep_model(n_channels, input_size_samples, n_dim = N_DIM)
+model_k = sleep_model(n_channels, input_size_samples, n_dim = N_DIM)
 
 
-q_encoder = model.to(device)
-k_encoder = model.to(device)
+q_encoder = model_q.to(device)
+k_encoder = model_k.to(device)
 
 for param_q, param_k in zip(q_encoder.parameters(), k_encoder.parameters()):
     param_k.data.copy_(param_q.data) 
@@ -143,10 +144,10 @@ wb = wandb.init(
         notes="single-epoch, triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with lbfgs solver, with lr=5e-4",
         save_code=True,
         entity="sleep-staging",
-        name="single-epoch-momentum-resnet, symmetric loss, same rec neg, saga",
+        name="single-epoch-momentum-resnet, large lr, same rec neg, saga",
     )
 wb.save('multi-epoch/single_epoch_momentum/*.py')
-wb.watch([q_encoder],log='all',log_freq=500)
+wb.watch([q_encoder, k_encoder],log='all',log_freq=500)
 
 Pretext(q_encoder, k_encoder, m, optimizer, n_epochs, criterion, pretext_loader, test_subjects, wb, device, SAVE_PATH, BATCH_SIZE)
 

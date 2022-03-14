@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import Sampler
 from sklearn.utils import check_random_state
 
-PATH = '/mnt/scratch/sleepkfoldsame/'
+PATH = '/mnt/scratch/sleepkfoldsamenofreq/'
 DATA_PATH = '/mnt/scratch/'
 os.makedirs(PATH, exist_ok=True)
 
@@ -135,7 +135,6 @@ dataset = SleepPhysionet(
 
 preprocessors = [
     Preprocessor(lambda x: x * 1e6),
-    Preprocessor("filter", l_freq=None, h_freq=high_cut_hz, n_jobs=n_jobs),
 ]
 
 # Transform the data
