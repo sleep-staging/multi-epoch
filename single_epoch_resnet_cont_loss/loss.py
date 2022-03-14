@@ -3,16 +3,13 @@ import torch.nn.functional as F
 
 # Loss function
 class loss_fn(torch.nn.modules.loss._Loss):
-    def __init__(self, device, margin=0.5, sigma=2.0, T=2.0):
+    def __init__(self, device, T=1.0):
         """
         T: softmax temperature (default: 0.07)
         """
         super(loss_fn, self).__init__()
         self.T = T
         self.device = device
-        self.margin = margin
-        self.sigma = sigma
-        self.softmax = torch.nn.Softmax(dim=-1)
 
     def forward(self, anc, pos, neg):
 
@@ -21,11 +18,14 @@ class loss_fn(torch.nn.modules.loss._Loss):
         pos = F.normalize(pos, p=2, dim=1)  # B, 128
         neg = F.normalize(neg, p=2, dim=1)  # B, 128
 
-        pos_numerator = torch.exp((anc*pos).sum(axis=-1)/self.T)
-        neg_denominator = torch.exp((anc*neg).sum(axis=-1).sum()/self.T)
+        pos_numerator = torch.exp((anc*pos).sum(axis=-1)/self.T) # B
+        pos_numerator = torch.cat([pos_numerator,pos_numerator],dim=0)
+        neg = neg.permute(1,0) # 128, B
+        neg1_denominator = torch.exp((torch.mm(torch.cat([anc,pos],dim=0), neg).sum(axis=-1))/self.T) # B
+        #neg2_denominator = torch.exp((torch.mm(pos, neg).sum(axis=-1))/self.T) # B
 
-        loss = -torch.log(pos_numerator/(pos_numerator+neg_denominator))
-
-        loss = loss.mean()
-
-        return loss
+        loss1 = -torch.log(pos_numerator/(pos_numerator+neg1_denominator))
+        #loss2 = -torch.log(pos_numerator/(pos_numerator+neg2_denominator))
+        #loss = torch.mean(loss1+loss2)
+        #loss = loss.mean()
+        return loss1.mean()
