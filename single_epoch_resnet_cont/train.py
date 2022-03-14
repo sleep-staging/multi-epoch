@@ -178,17 +178,12 @@ def Pretext(
                 neg.to(device),
             )  # (B, 7, 2, 3000)  (B, 7, 2, 3000) (B, 7, 2, 3000)
         
-            anc1_features = q_encoder(aug1, proj_first='yes') #(B, 128)
-            anc2_features = q_encoder(aug2, proj_first='yes') #(B, 128)
- 
-            pos1_features = q_encoder(aug2, proj_first='no')  # (B, 128)
-            pos2_features = q_encoder(aug1, proj_first='no')  # (B, 128)
-            neg_features = q_encoder(neg, proj_first='no')  # (B, 128)
+            anc_features = q_encoder(aug1, proj='top') #(B, 128)
+            pos_features = q_encoder(aug2, proj='top')  # (B, 128)
+            neg_features = q_encoder(neg, proj='top')  # (B, 128)
            
             # backprop
-            loss1 = criterion(anc1_features, pos1_features, neg_features)
-            loss2 = criterion(anc2_features, pos2_features, neg_features)
-            loss = loss1 + loss2
+            loss = criterion(anc_features, pos_features, neg_features)
 
             # loss back
             all_loss.append(loss.item())

@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/mnt/scratch/sleepkfoldsame/'
+PATH = '/scratch/sleepkfold'
 
 # Params
 SAVE_PATH = "single-epoch-resnet-cont-loss.pth"
@@ -49,7 +49,6 @@ set_random_seeds(seed=random_state, cuda=device == "cuda")
 # Extract number of channels and time steps from dataset
 n_channels, input_size_samples = (2, 3000)
 model = sleep_model(n_channels, input_size_samples, n_dim = N_DIM)
-
 
 q_encoder = model.to(device)
 
@@ -134,13 +133,13 @@ test_subjects = list(test_subjects.values())
 
 
 wb = wandb.init(
-        project="WTM-exp-500",
-        notes="single-epoch, triplet loss, symmetric loss, 7 epoch length, 500 samples, using logistic regression with lbfgs solver, with lr=5e-4",
+        project="WTM-single_epoch",
+        notes="single-epoch, symmetric loss, 1000 samples, using same projection heads and no batch norm, original simclr",
         save_code=True,
         entity="sleep-staging",
         name="single-epoch-resnet, symmetric loss, same rec neg, saga",
     )
-wb.save('multi-epoch/single_epoch_resnet/*.py')
+wb.save('multi-epoch/single_epoch_resnet_cont/*.py')
 wb.watch([q_encoder],log='all',log_freq=500)
 
 Pretext(q_encoder, optimizer, n_epochs, criterion, pretext_loader, test_subjects, wb, device, SAVE_PATH, BATCH_SIZE)

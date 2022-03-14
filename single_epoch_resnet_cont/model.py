@@ -43,27 +43,20 @@ def sleep_model(n_channels, input_size_samples, n_dim = 256):
             
             self.p1 = nn.Sequential(
                 nn.Linear(self.n_dim, self.n_dim // 2, bias=True),
-                nn.BatchNorm1d(self.n_dim // 2),
+                # nn.BatchNorm1d(self.n_dim // 2),
                 nn.ReLU(inplace=True),
                 nn.Linear(self.n_dim // 2, self.n_dim // 2, bias=True),
             )
-            self.p2 = nn.Sequential(
-                nn.Linear(self.n_dim, self.n_dim // 2, bias=True),
-                nn.BatchNorm1d(self.n_dim // 2),
-                nn.ReLU(inplace=True),
-                nn.Linear(self.n_dim // 2, self.n_dim // 2, bias=True),
-            )
-            
-        def forward(self, x, proj_first='yes'):
+           
+        def forward(self, x, proj='mid'):
             x = self.enc(x)
             
-            if proj_first == 'yes':
+            if proj == 'top':
                 x = self.p1(x)
                 return x
-            elif proj_first == 'no':
-                x = self.p2(x)
+            elif proj == 'mid':
                 return x
             else:
-                return x
+                raise Exception("Fix the projection heads")
             
     return Net(n_channels, n_dim)
