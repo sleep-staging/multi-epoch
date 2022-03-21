@@ -29,7 +29,7 @@ def evaluate(q_encoder, train_loader, test_loader, device):
             X_val = X_val.float()
             y_val = y_val.long()
             X_val = X_val.to(device)
-            emb_val.extend(q_encoder(X_val).cpu().tolist())
+            emb_val.extend(q_encoder(X_val, proj='mid').cpu().tolist())
             gt_val.extend(y_val.numpy().flatten())
     emb_val, gt_val = np.array(emb_val), np.array(gt_val)
 
@@ -40,7 +40,7 @@ def evaluate(q_encoder, train_loader, test_loader, device):
             X_test = X_test.float()
             y_test = y_test.long()
             X_test = X_test.to(device)
-            emb_test.extend(q_encoder(X_test).cpu().tolist())
+            emb_test.extend(q_encoder(X_test, proj='mid').cpu().tolist())
             gt_test.extend(y_test.numpy().flatten())
 
     emb_test, gt_test = np.array(emb_test), np.array(gt_test)
@@ -48,6 +48,7 @@ def evaluate(q_encoder, train_loader, test_loader, device):
     acc, cm, f1, kappa, bal_acc, gt, pd = task(emb_val, emb_test, gt_val, gt_test)
 
     q_encoder.train()
+
     return acc, cm, f1, kappa, bal_acc, gt, pd
 
 
@@ -57,7 +58,7 @@ def task(X_train, X_test, y_train, y_test):
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
 
-    cls = LogisticRegression(penalty='l2', C=1.0, solver="saga", class_weight='balanced', multi_class="multinomial", max_iter= 2000, n_jobs=-1, dual = False, random_state=1234)
+    cls = LogisticRegression(penalty='l2', C=1.0, solver="saga", class_weight='balanced', multi_class="multinomial", max_iter= 3000, n_jobs=-1, dual = False, random_state=1234)
     cls.fit(X_train, y_train)
     pred = cls.predict(X_test)
 
@@ -83,8 +84,8 @@ def kfold_evaluate(q_encoder, test_subjects, device, BATCH_SIZE):
         test_subjects_train = [rec for sub in test_subjects_train for rec in sub]
         test_subjects_test = [rec for sub in test_subjects_test for rec in sub]
 
-        train_loader = DataLoader(TuneDataset(test_subjects_train), batch_size=BATCH_SIZE, shuffle=True, num_workers=4, persistent_workers=True)
-        test_loader = DataLoader(TuneDataset(test_subjects_test), batch_size=BATCH_SIZE, shuffle= False, num_workers=4, persistent_workers=True)
+        train_loader = DataLoader(TuneDataset(test_subjects_train), batch_size=BATCH_SIZE, shuffle=True, num_workers=2, persistent_workers=True)
+        test_loader = DataLoader(TuneDataset(test_subjects_test), batch_size=BATCH_SIZE, shuffle= False, num_workers=2, persistent_workers=True)
         test_acc, _, test_f1, test_kappa, bal_acc, gt, pd = evaluate(q_encoder, train_loader, test_loader, device)
 
         total_acc.append(test_acc)
@@ -146,8 +147,6 @@ def Pretext(
     BATCH_SIZE
 ):
 
-    q_encoder.train()  # for dropout
-
     step = 0
     best_f1 = 0
 
@@ -167,7 +166,8 @@ def Pretext(
         for index, (aug1, aug2, neg) in enumerate(
             tqdm(pretext_loader, desc="pretrain")
         ):
-
+            q_encoder.train()
+            
             aug1 = aug1.float()
             aug2 = aug2.float()
             neg = neg.float()
@@ -178,17 +178,12 @@ def Pretext(
                 neg.to(device),
             )  # (B, 7, 2, 3000)  (B, 7, 2, 3000) (B, 7, 2, 3000)
         
-            anc1_features = q_encoder(aug1, proj_first='yes') #(B, 128)
-            anc2_features = q_encoder(aug2, proj_first='yes') #(B, 128)
- 
-            pos1_features = q_encoder(aug2, proj_first='no')  # (B, 128)
-            pos2_features = q_encoder(aug1, proj_first='no')  # (B, 128)
-            neg_features = q_encoder(neg, proj_first='no')  # (B, 128)
+            anc_features = q_encoder(aug1, proj='top') #(B, 128)
+            pos_features = q_encoder(aug2, proj='top')  # (B, 128)
+            neg_features = q_encoder(neg, proj='top')  # (B, 128)
            
             # backprop
-            loss1 = criterion(anc1_features, pos1_features, neg_features)
-            loss2 = criterion(anc2_features, pos2_features, neg_features)
-            loss = loss1 + loss2
+            loss = criterion(anc_features, pos_features, neg_features)
 
             # loss back
             all_loss.append(loss.item())
@@ -198,16 +193,15 @@ def Pretext(
             loss.backward()
             optimizer.step()  # only update encoder_q
 
-            N = 1000
-            if (step + 1) % N == 0:
-                scheduler.step(sum(all_loss[-50:]))
-                lr = optimizer.param_groups[0]["lr"]
-                wandb.log({"ssl_lr": lr, "Epoch": epoch})
-            step += 1
+        if epoch>=40:
+            scheduler.step(sum(all_loss))
+        
+        lr = optimizer.param_groups[0]["lr"]
+        wandb.log({"ssl_lr": lr, "Epoch": epoch})
 
         wandb.log({"ssl_loss": np.mean(pretext_loss), "Epoch": epoch})
 
-        if epoch >= 60 and (epoch) % 5 == 0:
+        if epoch >= 40 and (epoch) % 5 == 0:
 
             test_acc, test_f1, test_kappa, bal_acc = kfold_evaluate(
                 q_encoder, test_subjects, device, BATCH_SIZE

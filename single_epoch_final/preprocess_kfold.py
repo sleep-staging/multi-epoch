@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-import mne
+import mne, os
 from mne.datasets.sleep_physionet.age import fetch_data
 
 from braindecode.datautil.preprocess import preprocess, Preprocessor
@@ -15,8 +15,8 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import Sampler
 from sklearn.utils import check_random_state
 
-PATH = '/scratch/sleep500same/'
-#DATA_PATH = '/scratch/'
+PATH = '/scratch/sleepkfold_allsamples/'
+DATA_PATH = '/scratch/'
 os.makedirs(PATH, exist_ok=True)
 
 # Params
@@ -25,8 +25,7 @@ POS_MIN = 1
 NEG_MIN = 15
 EPOCH_LEN = 7
 NUM_SAMPLES = 500
-#SUBJECTS = np.arange(83)
-SUBJECTS = np.arange(3)
+SUBJECTS = np.arange(83)
 RECORDINGS = [1, 2]
 
 
@@ -54,8 +53,7 @@ class SleepPhysionet(BaseConcatDataset):
         crop=None,
     ):
         if subject_ids is None:
-            #subject_ids = range(83)
-            subject_ids = range(3)
+            subject_ids = range(83)
         if recording_ids is None:
             recording_ids = [1, 2]
 
@@ -63,7 +61,7 @@ class SleepPhysionet(BaseConcatDataset):
             subject_ids,
             recording=recording_ids,
             on_missing="warn",
-            path= PATH,
+            path= DATA_PATH,
         )
 
         all_base_ds = list()
@@ -163,7 +161,7 @@ windows_dataset = create_windows_from_events(
     mapping=mapping,
 )
 
-breakpoint()
+
 preprocess(windows_dataset, [Preprocessor(zscore)])
 
 
@@ -178,15 +176,11 @@ PERSIST = False if NUM_WORKERS <= 1 else True
 
 subjects = np.unique(windows_dataset.description["subject"])
 sub_pretext = rng.choice(subjects, 58, replace=False)
-sub_train = sorted(
-    rng.choice(sorted(list(set(subjects) - set(sub_pretext))), 10, replace=False)
-)
-sub_test = sorted(list(set(subjects) - set(sub_pretext) - set(sub_train)))
+sub_test = sorted(list(set(subjects) - set(sub_pretext)))
 
 
 print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 print(f"Pretext: {sub_pretext} \n")
-print(f"Train: {sub_train} \n")
 print(f"Test: {sub_test} \n")
 print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 
@@ -234,13 +228,53 @@ class TuneDataset(BaseConcatDataset):
         return X, y
 
 
+class RelativePositioningDataset(BaseConcatDataset):
+    """BaseConcatDataset with __getitem__ that expects 2 indices and a target."""
+
+    def __init__(self, list_of_ds, epoch_len=7):
+        super().__init__(list_of_ds)
+        self.return_pair = True
+        self.epoch_len = epoch_len
+
+    def __getitem__(self, index):
+
+        pos, neg = index
+        pos_data = []
+        neg_data = []
+
+        assert pos != neg, "pos and neg should not be the same"
+
+        for i in range(-(self.epoch_len // 2), self.epoch_len // 2 + 1):
+            pos_data.append(super().__getitem__(pos + i)[0])
+            neg_data.append(super().__getitem__(neg + i)[0])
+
+        pos_data = np.stack(pos_data, axis=0) # (7, 2, 3000)
+        neg_data = np.stack(neg_data, axis=0) # (7, 2, 3000)
+
+        return pos_data, neg_data
+
+
+class TuneDataset(BaseConcatDataset):
+    """BaseConcatDataset for train and test"""
+
+    def __init__(self, list_of_ds):
+        super().__init__(list_of_ds)
+
+    def __getitem__(self, index):
+
+        X = super().__getitem__(index)[0]
+        y = super().__getitem__(index)[1]
+
+        return X, y
+
+
 class RecordingSampler(Sampler):
     def __init__(self, metadata, random_state=None, epoch_len=7):
 
         self.metadata = metadata
+        self.epoch_len = epoch_len
         self._init_info()
         self.rng = check_random_state(random_state)
-        self.epoch_len = epoch_len
 
     def _init_info(self):
         keys = ["subject", "recording"]
@@ -258,16 +292,7 @@ class RecordingSampler(Sampler):
     def sample_recording(self):
         """Return a random recording index."""
         return self.rng.choice(self.n_recordings)
-
-    def sample_window(self, rec_ind=None):
-        """Return a specific window."""
-        if rec_ind is None:
-            rec_ind = self.sample_recording()
-        win_ind = self.rng.choice(
-            self.info.iloc[rec_ind]["index"][self.epoch_len // 2 : -self.epoch_len // 2]
-        )
-        return win_ind, rec_ind
-
+            
     def __iter__(self):
         raise NotImplementedError
 
@@ -294,50 +319,55 @@ class RelativePositioningSampler(RecordingSampler):
         self.epoch_len = epoch_len
         self.n_examples = n_examples
         self.same_rec_neg = same_rec_neg
+        self.info['index'] = self.info['index'].apply(lambda x: x[self.epoch_len // 2 : -(self.epoch_len // 2) ])
+        self.info['i_start_in_trial'] = self.info['i_start_in_trial'].apply(lambda x: x[self.epoch_len // 2 : -(self.epoch_len // 2) ])
+        self.info.iloc[-1]['index'] = self.info.iloc[-1]['index'][:-(7 // 2) - 1]
+        self.info.iloc[-1]['i_start_in_trial'] = self.info.iloc[-1]['i_start_in_trial'][: -(self.epoch_len // 2) - 1]
 
     def _sample_pair(self):
         
         """Sample a pair of two windows."""
         # Sample first window
-        win_ind1, rec_ind1 = self.sample_window()
         
-        ts1 = self.metadata.iloc[win_ind1]["i_start_in_trial"]
-        ts = self.info.iloc[rec_ind1]["i_start_in_trial"]
+        for rec_id in range(self.info.shape[0]):
+            epochs = self.info.iloc[rec_id]["index"]
+            start_trail = self.info.iloc[rec_id]["i_start_in_trial"]
+            for ep_id, trail in zip(epochs, start_trail):
+               
+                win_ind1, rec_ind1 = ep_id, rec_id
+                ts1 = trail
+                ts = self.info.iloc[rec_ind1]["i_start_in_trial"]
 
-        epoch_min = self.info.iloc[rec_ind1]["i_start_in_trial"][self.epoch_len // 2]
-        epoch_max = self.info.iloc[rec_ind1]["i_start_in_trial"][-self.epoch_len // 2]
-        
-        rng = np.random.Random
-        if self.same_rec_neg:
-            mask = ((ts <= ts1 - self.tau_neg) & (ts >= epoch_min)) | (
-                (ts >= ts1 + self.tau_neg) & (ts <= epoch_max)
-            )
+                epoch_min = self.info.iloc[rec_ind1]["i_start_in_trial"][self.epoch_len // 2]
+                epoch_max = self.info.iloc[rec_ind1]["i_start_in_trial"][-self.epoch_len // 2]
 
-        if sum(mask) == 0:
-            raise NotImplementedError
-        win_ind2 = self.rng.choice(self.info.iloc[rec_ind1]["index"][mask])
-        
-        return win_ind1, win_ind2
+                if self.same_rec_neg:
+                    mask = ((ts <= ts1 - self.tau_neg) & (ts >= epoch_min)) | (
+                        (ts >= ts1 + self.tau_neg) & (ts <= epoch_max)
+                    )
+                    
+                if sum(mask) == 0:
+                    raise NotImplementedError
+                win_ind2 = self.rng.choice(self.info.iloc[rec_ind1]["index"][mask])
+                yield win_ind1, win_ind2
 
-    def __iter__(self):
-
-        for i in range(self.n_examples):
-
-            yield self._sample_pair()
-
+    def __iter__(self):  
+        yield from self._sample_pair()
+      
     def __len__(self):
-        return self.n_examples
+        epoch_len = 0
+        for rec_id in range(self.info.shape[0]):
+            epoch_len += len(self.info.iloc[rec_id]["index"])
+        return epoch_len
     
     
 ######################################################################################################################
 
 
 PRETEXT_PATH = os.path.join(PATH, "pretext")
-TRAIN_PATH = os.path.join(PATH, "train")
 TEST_PATH = os.path.join(PATH, "test")
 
 if not os.path.exists(PRETEXT_PATH): os.mkdir(PRETEXT_PATH)
-if not os.path.exists(TRAIN_PATH): os.mkdir(TRAIN_PATH)
 if not os.path.exists(TEST_PATH): os.mkdir(TEST_PATH)
 
 
@@ -348,23 +378,21 @@ splitted["pretext"] = RelativePositioningDataset(
     epoch_len = EPOCH_LEN
 )
 
-splitted["train"] = TuneDataset(
-    [ds for ds in windows_dataset.datasets if ds.description["subject"] in sub_train]
-)
 
-splitted["test"] = TuneDataset(
-    [ds for ds in windows_dataset.datasets if ds.description["subject"] in sub_test]
-)
+splitted["test"] = [ds for ds in windows_dataset.datasets if ds.description["subject"] in sub_test]
 
+for sub in splitted["test"]:
+    temp_path = os.path.join(TEST_PATH, str(sub.description["subject"]) + str(sub.description["recording"])+'.npz')
+    np.savez(temp_path, **sub.__dict__)
+
+########################################################################################################################
 
 
 # Sampler
 tau_pos, tau_neg = int(sfreq * POS_MIN * 60), int(sfreq * NEG_MIN * 60)
-
 n_examples_pretext = NUM_SAMPLES * len(splitted["pretext"].datasets)
 
 print(f'Number of pretext subjects: {len(splitted["pretext"].datasets)}')
-print(f'Number of pretext epochs: {n_examples_pretext}')
 
 pretext_sampler = RelativePositioningSampler(
     splitted["pretext"].get_metadata(),
@@ -383,23 +411,10 @@ pretext_loader = DataLoader(
     sampler=pretext_sampler
 )
 
-train_loader = DataLoader(
-    splitted["train"], batch_size=BATCH_SIZE, shuffle= False
-)
+print(f'Number of pretext epochs: {len(pretext_loader)}')
 
-test_loader = DataLoader(
-    splitted["test"], batch_size=BATCH_SIZE, shuffle=False
-    )
+for i, arr in tqdm(enumerate(pretext_loader), desc = 'pretext'):
+    temp_path = os.path.join(PRETEXT_PATH, str(i) + '.npz')
+    np.savez(temp_path, pos = arr[0].numpy().squeeze(0), neg = arr[1].numpy().squeeze(0))
+  
 
-#for i, arr in tqdm(enumerate(pretext_loader), desc = 'pretext'):
-#    temp_path = os.path.join(PRETEXT_PATH, str(i) + '.npz')
-#    np.savez(temp_path, pos = arr[0].numpy().squeeze(0), neg = arr[1].numpy().squeeze(0))
-#  
-#for i, arr in tqdm(enumerate(train_loader), desc = 'train'):
-#    temp_path = os.path.join(TRAIN_PATH, str(i) + '.npz')
-#    np.savez(temp_path, x = arr[0].numpy().squeeze(0), y = arr[1].numpy().squeeze(0))
-#    
-#for i, arr in tqdm(enumerate(test_loader), desc = 'test'):
-#    temp_path = os.path.join(TEST_PATH, str(i) + '.npz')
-#    np.savez(temp_path, x = arr[0].numpy().squeeze(0), y = arr[1].numpy().squeeze(0))
-#    
