@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/scratch/allsamples'
+PATH = '/scratch/sleepkfold_allsamples'
 
 # Params
 SAVE_PATH = "single-epoch-final.pth"
@@ -133,7 +133,7 @@ test_subjects = list(test_subjects.values())
 
 
 wb = wandb.init(
-        project="single-epoch-contrastive-loss",
+        project="WTM-ssl",
         notes="single-epoch, symmetric loss, 1000 samples, using same projection heads and no batch norm, original simclr",
         save_code=True,
         entity="sleep-staging",

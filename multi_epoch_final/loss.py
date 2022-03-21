@@ -10,13 +10,14 @@ class loss_fn(torch.nn.modules.loss._Loss):
         super(loss_fn, self).__init__()
         self.T = T
         self.device = device
+        self.softmax = torch.nn.Softmax(dim=-1)
 
     def forward(self, anc, pos, neg):
 
         # L2 normalize
         anc = F.normalize(anc, p=2, dim=1)  # B, 128
-        pos = F.normalize(pos, p=2, dim=1)  # B, 128
-        neg = F.normalize(neg, p=2, dim=1)  # B, 128
+        pos = F.normalize(pos, p=2, dim=2)  # B, 128
+        neg = F.normalize(neg, p=2, dim=2)  # B, 128
         
         # Calculate weights
         pos_sim = torch.bmm(anc.unsqueeze(1), pos.transpose(1, 2))  # B, 1, 7

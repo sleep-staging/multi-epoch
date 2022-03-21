@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/scratch/allsamples'
+PATH = '/scratch/sleepkfold_allsamples/'
 
 # Params
 SAVE_PATH = "multi-epoch-final.pth"
@@ -74,12 +74,13 @@ class pretext_data(Dataset):
         data = np.load(path)
         pos = data['pos'] #(7, 2, 3000)
         neg = data['neg'] #(7, 2, 3000)
-        anc = copy.deepcopy(pos)
+        pos_len = len(pos) # 7
+        anc = copy.deepcopy(pos[pos_len // 2])
         
         # augment
+        anc = augment(anc)
         for i in range(pos.shape[0]):
             pos[i] = augment(pos[i])
-            anc[i] = augment(anc[i])
             neg[i] = augment(neg[i])
        
         return anc, pos, neg
@@ -132,7 +133,7 @@ test_subjects = list(test_subjects.values())
 
 
 wb = wandb.init(
-        project="WTM-new-multi-epoch",
+        project="WTM-ssl",
         notes="single-epoch, symmetric loss, 1000 samples, using same projection heads and no batch norm, original simclr",
         save_code=True,
         entity="sleep-staging",
