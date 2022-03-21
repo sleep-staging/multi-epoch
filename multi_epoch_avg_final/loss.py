@@ -15,8 +15,8 @@ class loss_fn(torch.nn.modules.loss._Loss):
 
         # L2 normalize
         anc = F.normalize(anc, p=2, dim=1)  # B, 128
-        pos = F.normalize(pos, p=2, dim=1)  # B, 128
-        neg = F.normalize(neg, p=2, dim=1)  # B, 128
+        pos = F.normalize(pos, p=2, dim=2)  # B, 128
+        neg = F.normalize(neg, p=2, dim=2)  # B, 128
         
         # Calculate weights
         pos = torch.mean(pos, dim = 1)  # B, 128

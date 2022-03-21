@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
-PATH = '/scratch/sleepkfold_allsamples'
+PATH = '/scratch/sleepkfold_allsamples/'
 
 # Params
 SAVE_PATH = "multi-epoch-avg-final.pth"
@@ -74,12 +74,13 @@ class pretext_data(Dataset):
         data = np.load(path)
         pos = data['pos'] #(7, 2, 3000)
         neg = data['neg'] #(7, 2, 3000)
-        anc = copy.deepcopy(pos)
+        pos_len = len(pos) # 7
+        anc = copy.deepcopy(pos[pos_len // 2])
         
         # augment
+        anc = augment(anc)
         for i in range(pos.shape[0]):
             pos[i] = augment(pos[i])
-            anc[i] = augment(anc[i])
             neg[i] = augment(neg[i])
        
         return anc, pos, neg

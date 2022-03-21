@@ -182,10 +182,13 @@ def Pretext(
             pos_features = []
             neg_features = []
         
-            anc_features = q_encoder(anc[:, num_len // 2], proj='top') #(B, 128)
+            anc_features = q_encoder(anc, proj='top') #(B, 128)
             for i in range(num_len):
                 pos_features.append(q_encoder(pos[:, i], proj='top'))  # (B, 128)
                 neg_features.append(q_encoder(neg[:, i], proj='top'))  # (B, 128)
+                
+            pos_features = torch.stack(pos_features, dim=1)  # (B, 7, 128)
+            neg_features = torch.stack(neg_features, dim=1)  # (B, 7, 128)
                        
             # backprop
             loss = criterion(anc_features, pos_features, neg_features)
